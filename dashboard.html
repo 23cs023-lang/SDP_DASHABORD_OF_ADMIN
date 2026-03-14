@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | CreoVibe Admin{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<style>
+    body {
+        background-color: #f8f9fc !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    .welcome-block {
+        margin-bottom: 28px;
+    }
+    .welcome-block h2 {
+        color: #1a202c;
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+    }
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+    .stat-card {
+        background: #ffffff !important;
+        border-radius: 16px !important;
+        padding: 24px 28px !important;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+        border: 1px solid #f0f0f0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 16px !important;
+        transition: all 0.3s ease !important;
+        cursor: pointer;
+    }
+    .stat-card:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+        transform: translateY(-2px);
+    }
+    .icon-circle {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+    .stat-content {
+        display: flex;
+        flex-direction: column;
+    }
+    .stat-label {
+        font-size: 13px;
+        color: #718096;
+        font-weight: 500;
+        margin-bottom: 4px;
+        text-transform: none;
+        letter-spacing: normal;
+    }
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a202c;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    /* Card Icon Variants */
+    .icon-artists { background: #eef2ff; color: #667eea; }
+    .icon-bookings { background: #e6fffa; color: #2f855a; }
+    .icon-revenue { background: #fff5f0; color: #dd6b20; }
+    .icon-requests { background: #fffbeb; color: #b7791f; }
+
+    .recent-section {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border: 1px solid #f0f0f0;
+    }
+    .section-title {
+        color: #1a202c;
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 24px;
+    }
+    .recent-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .recent-table th {
+        text-align: left;
+        padding: 12px 16px;
+        color: #667eea;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .recent-table td {
+        padding: 16px;
+        color: #4a5568;
+        border-bottom: 1px solid #f8f9fa;
+        font-size: 14px;
+    }
+    .recent-table tr:hover {
+        background: #f8f9ff;
+    }
+    
+    /* Status Badges */
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+    }
+    .status-completed { background: #e6fffa; color: #2f855a; }
+    .status-pending { background: #fffbeb; color: #b7791f; }
+    .status-cancelled { background: #fff5f5; color: #e53e3e; }
+    .status-confirmed { background: #ebf8ff; color: #2b6cb0; }
+
+    /* Hide the old CSS classes to avoid conflicts */
+    .stats-grid, .header, .quick-actions { display: none !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-block">
+    <h2>Welcome, {{ username }}!</h2>
+</div>
+
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="icon-circle icon-artists">
+            <i class="fas fa-palette"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-label">Total Artists</span>
+            <h3 class="stat-value">{{ stats.total_artists }}</h3>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="icon-circle icon-bookings">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-label">Active Bookings</span>
+            <h3 class="stat-value">{{ stats.active_bookings }}</h3>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="icon-circle icon-revenue">
+            <i class="fas fa-rupee-sign"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-label">Total Revenue</span>
+            <h3 class="stat-value">₹{{ stats.total_revenue }}</h3>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="icon-circle icon-requests">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-label">Pending Requests</span>
+            <h3 class="stat-value">{{ stats.pending_requests }}</h3>
+        </div>
+    </div>
+</div>
+
+<div class="recent-section">
+    <h3 class="section-title">Recent Bookings</h3>
+    <div style="overflow-x:auto;">
+        <table class="recent-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Client</th>
+                    <th>Artist</th>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td style="font-weight: 600;">{{ loop.index }}</td>
+                    <td style="font-weight: 500;">{{ booking.client }}</td>
+                    <td>{{ booking.artist }}</td>
+                    <td>{{ booking.event|default('Standard') }}</td>
+                    <td>{{ booking.date }}</td>
+                    <td>
+                        <span class="status-badge status-{{ booking.status|lower }}">
+                            {{ booking.status|title }}
+                        </span>
+                    </td>
+                    <td style="font-weight: 700;">{{ booking.amount }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="padding: 40px; text-align: center; color: #6B7280;">No recent bookings</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

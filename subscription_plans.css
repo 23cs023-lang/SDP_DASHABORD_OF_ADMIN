@@ -1,0 +1,35 @@
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #7f8c8d;
+}
+
+.empty-state i {
+    font-size: 44px;
+    margin-bottom: 12px;
+    color: #d0d7de;
+}
+
+.empty-state h3 {
+    color: #2c3e50;
+    margin-bottom: 8px;
+}
+
+.plan-modal-content {
+    max-width: 620px;
+}
+
+.plan-features-cell {
+    white-space: pre-wrap;
+}
+
+.form-error {
+    color: #e74c3c;
+    display: block;
+    margin-top: 6px;
+    min-height: 16px;
+}
+
+.inline-form {
+    display: inline-flex;
+}

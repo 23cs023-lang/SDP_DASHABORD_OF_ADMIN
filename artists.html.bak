@@ -1,0 +1,1059 @@
+{% extends "base.html" %}
+
+{% block title %}Artists Management | CreoVibe Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/artists.css') }}">
+<style>
+/* BUG 1 & 3 FIX: Header z-index and modal overlap prevention */
+.header {
+    position: relative !important;
+    z-index: 1 !important; /* Welcome admin block z:1 or auto */
+}
+.global-header-actions {
+    z-index: 1000 !important;
+}
+.site-header {
+    z-index: 1000 !important;
+}
+#artistFormModal {
+    z-index: 900 !important; /* backdrop z:900 */
+    align-items: flex-start !important;
+    top: 74px !important; /* modal starts below top header bar */
+    padding-top: 0 !important;
+    max-height: calc(100vh - 74px) !important;
+    overflow-y: auto !important;
+}
+#artistFormModal .modal-content {
+    z-index: 950 !important; /* panel z:950 */
+    margin-top: 20px !important;
+}
+
+/* BUG 4 FIX: Update Add Artist color theme to primary purple */
+#artistFormModal .form-modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+#artistFormModal .save-btn {
+    background: #764ba2 !important;
+}
+#artistFormModal .save-btn:hover {
+    background: #667eea !important;
+}
+/* Blue focus rings / inputs converted to primary purple */
+#artistFormModal .admin-form input:focus,
+#artistFormModal .admin-form select:focus,
+#artistFormModal .admin-form textarea:focus,
+#artistFormModal .form-group input:focus,
+#artistFormModal .form-group select:focus,
+#artistFormModal .form-group textarea:focus {
+    border-color: #764ba2 !important;
+    box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.18) !important;
+}
+</style>
+{% endblock %}
+{% block layout %}
+<div class="sidebar">
+        <h2><i class="fas fa-tachometer-alt"></i> Creovibe Admin</h2>
+        <ul>
+            <li><a href="/dashboard" {% if request.path == '/dashboard' %}class="active"{% endif %}><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="/artists" {% if request.path == '/artists' %}class="active"{% endif %}><i class="fas fa-users"></i> Artists</a></li>
+            <li><a href="/clients" {% if request.path == '/clients' %}class="active"{% endif %}><i class="fas fa-user-tie"></i> Clients</a></li>
+            <li><a href="/bookings" {% if request.path == '/bookings' %}class="active"{% endif %}><i class="fas fa-calendar-check"></i> Bookings</a></li>
+            <li><a href="/notifications" {% if request.path == '/notifications' %}class="active"{% endif %}><i class="fas fa-bell"></i> Notifications</a></li>
+            <li><a href="/feedback" {% if request.path == '/feedback' %}class="active"{% endif %}><i class="fas fa-comment-dots"></i> Feedback</a></li>
+            <li><a href="/admin/categories" {% if request.path == '/admin/categories' %}class="active"{% endif %}><i class="fas fa-tags"></i> Categories</a></li>
+            <li><a href="/admin/payments" {% if request.path == '/admin/payments' %}class="active"{% endif %}><i class="fas fa-credit-card"></i> Payments</a></li>
+            <li><a href="/admin/subscription-plans" {% if request.path == '/admin/subscription-plans' %}class="active"{% endif %}><i class="fas fa-file-signature"></i> Subscription Plans</a></li>
+            <li><a href="/admin/calendar" {% if request.path == '/admin/calendar' %}class="active"{% endif %}><i class="fas fa-calendar-alt"></i> Admin Calendar</a></li>
+            <li><a href="/verification" {% if request.path == '/verification' %}class="active"{% endif %}><i class="fas fa-check-circle"></i> Verification</a></li>
+            <li><a href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header" style="padding-bottom: 20px;">
+            <h1 class="welcome">Welcome, {{ username }}!</h1>
+        </div>
+
+        <div class="page-header">
+            <h2>Artists Management ({{ artists|length }} Artists)</h2>
+            <div>
+                <button class="add-btn" onclick="showArtistForm()">
+                    <i class="fas fa-plus"></i> Add New Artist
+                </button>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search artists..." onkeyup="searchArtists()">
+                    <button onclick="searchArtists()"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="category-filter">
+            <button class="filter-btn active" data-category="all" onclick="filterByCategory('all')">All Artists</button>
+            <button class="filter-btn" data-category="singer" onclick="filterByCategory('singer')">
+                <i class="fas fa-microphone"></i> Singers
+            </button>
+            <button class="filter-btn" data-category="dancer" onclick="filterByCategory('dancer')">
+                <i class="fas fa-user-friends"></i> Dancers
+            </button>
+            <button class="filter-btn" data-category="photographer" onclick="filterByCategory('photographer')">
+                <i class="fas fa-camera"></i> Photographers
+            </button>
+        </div>
+
+        <!-- Artist Profile Modal -->
+        <div id="artistModal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+                <div id="modalContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Artist Form Modal -->
+        <div id="artistFormModal" class="modal">
+            <div class="modal-content artist-form-content">
+                <span class="close-btn artist-form-close" onclick="closeArtistForm()">&times;</span>
+                <div class="form-modal-header">
+                    <h3 id="formTitle">Add New Artist</h3>
+                    <p>Add a verified artist profile with contact and location details.</p>
+                </div>
+                <form id="artistForm" class="artist-form-body admin-form">
+                    <input type="hidden" id="artistId" name="artistId">
+
+                    <div class="form-grid">
+                    <div class="form-group">
+                        <label for="first_name">First Name *</label>
+                        <input type="text" id="first_name" name="first_name" pattern="^[A-Za-z]{3,20}$" minlength="3" maxlength="20" required>
+                        <small class="error-message" id="firstNameError"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="last_name">Last Name *</label>
+                        <input type="text" id="last_name" name="last_name" pattern="^[A-Za-z]{3,20}$" minlength="3" maxlength="20" required>
+                        <small class="error-message" id="lastNameError"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="gender">Gender *</label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <small class="error-message" id="genderError"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number *</label>
+                        <input type="tel" id="phone" name="phone" pattern="[0-9]{10}" maxlength="10" required>
+                        <small class="error-message" id="phoneError"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email *</label>
+                        <input type="email" id="email" name="email" required>
+                        <small class="error-message" id="emailError"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dob">Date of Birth</label>
+                        <input type="date" id="dob" name="dob">
+                        <small class="error-message" id="dobError"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category">Category *</label>
+                        <select id="category" name="category" required>
+                            <option value="">Select Category</option>
+                            <option value="Singer">Singer</option>
+                            <option value="Dancer">Dancer</option>
+                            <option value="Photographer">Photographer</option>
+                        </select>
+                        <small class="error-message" id="categoryError"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="experience_years">Experience *</label>
+                        <select id="experience_years" name="experience_years" required>
+                            <option value="">Select Experience</option>
+                            <option value="1">1 Year</option>
+                            <option value="2">2 Years</option>
+                            <option value="3">3 Years</option>
+                            <option value="4">4 Years</option>
+                            <option value="5">5+ Years</option>
+                        </select>
+                        <small class="error-message" id="experienceError"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="state_id">State *</label>
+                        <select id="state_id" name="state_id" required>
+                            <option value="">Select State</option>
+                        </select>
+                        <small class="error-message" id="stateError"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="city_id">City *</label>
+                        <select id="city_id" name="city_id" required>
+                            <option value="">Select City</option>
+                        </select>
+                        <small class="error-message" id="cityError"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pincode">Pincode *</label>
+                        <input type="text" id="pincode" name="pincode" pattern="[0-9]{6}" maxlength="6" readonly required>
+                        <small class="error-message" id="pincodeError"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="portfolio_path">Portfolio Path</label>
+                        <input type="text" id="portfolio_path" name="portfolio_path">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="status">Status</label>
+                        <select id="status" name="status">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    </div>
+
+                    <div id="formSuccessMessage" class="success-message" role="status" aria-live="polite"></div>
+                    
+                    <div class="form-actions artist-form-actions">
+                        <button type="button" class="cancel-btn" onclick="closeArtistForm()">Cancel</button>
+                        <button type="submit" class="save-btn" id="saveBtn">
+                            <span id="saveText">Save Artist</span>
+                            <span id="loadingSpinner">
+                                <i class="fas fa-spinner fa-spin"></i> Saving...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="artistsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price Range</th>
+                        <th>Status</th>
+                        <th>Verification</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for artist in artists %}
+                    <tr id="artist-row-{{ artist.id }}" class="artist-main-row" data-artist-id="{{ artist.id }}">
+                        <td>{{ artist.id }}</td>
+                        <td>
+                            <strong>{{ artist.name }}</strong>
+                            {% if artist.subscription_plan %}
+                                <span>
+                                    {{ artist.subscription_plan }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td><span class="category {{ artist.category.lower() }}">{{ artist.category }}</span></td>
+                        <td>{{ artist.price }}</td>
+                        <td>
+                            <span class="status {{ 'active' if artist.status == 'Active' else 'inactive' }}" data-status-badge>
+                                {{ artist.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="verification-badge verification-{{ artist.verification_status }}">
+                                {{ artist.verification_status|upper }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn view-btn" onclick="viewArtist({{ artist.id }})" title="View Details">
+                                    <i class="fas fa-eye"></i> View Details
+                                </button>
+                                <button class="action-btn edit-btn" onclick="editArtist({{ artist.id }})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn suspend-btn" onclick="suspendArtist({{ artist.id }})" title="Suspend">
+                                    <i class="fas fa-user-slash"></i>
+                                </button>
+                                <button class="action-btn delete-btn" onclick="deleteArtist({{ artist.id }})" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            {% if artists|length == 0 %}
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h3>No Artists Found</h3>
+                <p>Click "Add New Artist" to create your first artist.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+        <script>
+        const NAME_ERROR_MESSAGE = 'Name must contain only letters and be 3 to 20 characters long.';
+        const NAME_REGEX = /^[A-Za-z]{3,20}$/;
+        const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const PHONE_REGEX = /^[0-9]{10}$/;
+        const PINCODE_REGEX = /^[0-9]{6}$/;
+        const EXPERIENCE_VALUES = new Set(['1', '2', '3', '4', '5']);
+
+        function validateName(name) {
+            if (!NAME_REGEX.test(name || '')) return false;
+            if (new Set(name.toLowerCase()).size === 1) return false;
+            return true;
+        }
+
+        function setFieldError(fieldId, errorId, message) {
+            const field = document.getElementById(fieldId);
+            const error = document.getElementById(errorId);
+            if (field) field.classList.add('invalid-input');
+            if (error) {
+                error.textContent = message;
+                error.style.display = 'block';
+            }
+        }
+
+        function clearFieldError(fieldId, errorId) {
+            const field = document.getElementById(fieldId);
+            const error = document.getElementById(errorId);
+            if (field) field.classList.remove('invalid-input');
+            if (error) {
+                error.textContent = '';
+                error.style.display = 'none';
+            }
+        }
+
+        function clearAllErrors() {
+            clearFieldError('first_name', 'firstNameError');
+            clearFieldError('last_name', 'lastNameError');
+            clearFieldError('gender', 'genderError');
+            clearFieldError('phone', 'phoneError');
+            clearFieldError('email', 'emailError');
+            clearFieldError('dob', 'dobError');
+            clearFieldError('category', 'categoryError');
+            clearFieldError('experience_years', 'experienceError');
+            clearFieldError('state_id', 'stateError');
+            clearFieldError('city_id', 'cityError');
+            clearFieldError('pincode', 'pincodeError');
+            const successNode = document.getElementById('formSuccessMessage');
+            successNode.textContent = '';
+            successNode.style.display = 'none';
+        }
+
+        function validateNameField(fieldId, errorId) {
+            const value = document.getElementById(fieldId).value.trim();
+            if (!validateName(value)) {
+                setFieldError(fieldId, errorId, NAME_ERROR_MESSAGE);
+                return false;
+            }
+            clearFieldError(fieldId, errorId);
+            return true;
+        }
+
+        function validatePhoneField() {
+            const value = document.getElementById('phone').value.trim();
+            if (!PHONE_REGEX.test(value)) {
+                setFieldError('phone', 'phoneError', 'Phone number must be exactly 10 digits.');
+                return false;
+            }
+            clearFieldError('phone', 'phoneError');
+            return true;
+        }
+
+        function validateEmailField() {
+            const value = document.getElementById('email').value.trim();
+            if (!EMAIL_REGEX.test(value)) {
+                setFieldError('email', 'emailError', 'Please enter a valid email address.');
+                return false;
+            }
+            clearFieldError('email', 'emailError');
+            return true;
+        }
+
+        function validateExperienceField() {
+            const value = document.getElementById('experience_years').value;
+            if (!EXPERIENCE_VALUES.has(value)) {
+                setFieldError('experience_years', 'experienceError', 'Please select a valid experience.');
+                return false;
+            }
+            clearFieldError('experience_years', 'experienceError');
+            return true;
+        }
+
+        function validateRequiredSelect(fieldId, errorId, message) {
+            const value = document.getElementById(fieldId).value;
+            if (!value) {
+                setFieldError(fieldId, errorId, message);
+                return false;
+            }
+            clearFieldError(fieldId, errorId);
+            return true;
+        }
+
+        function validatePincodeField() {
+            const value = document.getElementById('pincode').value.trim();
+            if (!PINCODE_REGEX.test(value)) {
+                setFieldError('pincode', 'pincodeError', 'Pincode must be exactly 6 digits.');
+                return false;
+            }
+            clearFieldError('pincode', 'pincodeError');
+            return true;
+        }
+
+        function validateDOBField() {
+            const value = document.getElementById('dob').value;
+            if (!value) {
+                clearFieldError('dob', 'dobError');
+                return true;
+            }
+
+            const dob = new Date(`${value}T00:00:00`);
+            if (Number.isNaN(dob.getTime())) {
+                setFieldError('dob', 'dobError', 'Please enter a valid Date of Birth.');
+                return false;
+            }
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (dob > today) {
+                setFieldError('dob', 'dobError', 'Date of Birth cannot be a future date.');
+                return false;
+            }
+
+            let age = today.getFullYear() - dob.getFullYear();
+            const monthDelta = today.getMonth() - dob.getMonth();
+            if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < dob.getDate())) {
+                age -= 1;
+            }
+
+            if (age < 18) {
+                setFieldError('dob', 'dobError', 'Artist must be at least 18 years old.');
+                return false;
+            }
+
+            clearFieldError('dob', 'dobError');
+            return true;
+        }
+
+        function validateArtistForm() {
+            const checks = [
+                validateNameField('first_name', 'firstNameError'),
+                validateNameField('last_name', 'lastNameError'),
+                validatePhoneField(),
+                validateEmailField(),
+                validateDOBField(),
+                validateRequiredSelect('gender', 'genderError', 'Gender is required.'),
+                validateRequiredSelect('category', 'categoryError', 'Category is required.'),
+                validateExperienceField(),
+                validateRequiredSelect('state_id', 'stateError', 'State is required.'),
+                validateRequiredSelect('city_id', 'cityError', 'City is required.'),
+                validatePincodeField()
+            ];
+            return checks.every(Boolean);
+        }
+
+        async function loadStates(selectedStateId = '') {
+            const stateSelect = document.getElementById('state_id');
+            stateSelect.innerHTML = '<option value="">Select State</option>';
+
+            const response = await fetch('/get_states', { credentials: 'include' });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load states');
+
+            data.states.forEach((state) => {
+                const option = document.createElement('option');
+                option.value = state.state_id;
+                option.textContent = `${state.state_name}${state.state_code ? ` (${state.state_code})` : ''}`;
+                stateSelect.appendChild(option);
+            });
+
+            if (selectedStateId) {
+                stateSelect.value = String(selectedStateId);
+            }
+        }
+
+        async function loadCities(stateId, selectedCityId = '') {
+            const citySelect = document.getElementById('city_id');
+            citySelect.innerHTML = '<option value="">Select City</option>';
+            document.getElementById('pincode').value = '';
+            clearFieldError('city_id', 'cityError');
+            clearFieldError('pincode', 'pincodeError');
+
+            if (!stateId) return;
+
+            const response = await fetch(`/get_cities/${stateId}`, { credentials: 'include' });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load cities');
+
+            data.cities.forEach((city) => {
+                const option = document.createElement('option');
+                option.value = city.city_id;
+                option.textContent = city.city_name;
+                citySelect.appendChild(option);
+            });
+
+            if (selectedCityId) {
+                citySelect.value = String(selectedCityId);
+            }
+        }
+
+        async function loadPincode(cityId) {
+            document.getElementById('pincode').value = '';
+            if (!cityId) return;
+
+            const response = await fetch(`/get_pincode/${cityId}`, { credentials: 'include' });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load pincode');
+
+            document.getElementById('pincode').value = (data.pincode || '').trim();
+            validatePincodeField();
+        }
+
+        const artistDetailsCache = new Map();
+
+        function normalizeAccountStatus(value) {
+            const status = String(value || '').trim().toLowerCase();
+            if (status === 'active') return 'Active';
+            if (status === 'pending') return 'Pending';
+            if (status === 'suspended' || status === 'inactive') return 'Suspended';
+            return 'Active';
+        }
+
+        function getStatusClass(statusValue) {
+            const status = normalizeAccountStatus(statusValue).toLowerCase();
+            return status === 'suspended' ? 'suspended' : status;
+        }
+
+        function parsePortfolioItems(portfolioPath) {
+            return String(portfolioPath || '')
+                .split(/[\n,;]+/)
+                .map((item) => item.trim())
+                .filter(Boolean)
+                .slice(0, 4);
+        }
+
+        function formatDate(value) {
+            if (!value) return 'N/A';
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? 'N/A' : parsed.toLocaleDateString();
+        }
+
+        function buildPortfolioGrid(portfolioPath) {
+            const items = parsePortfolioItems(portfolioPath);
+            if (!items.length) {
+                return '<div class="portfolio-empty">No portfolio files uploaded.</div>';
+            }
+            return items.map((item, index) => {
+                const isLink = /^https?:\/\//i.test(item);
+                const safeText = escapeHtml(item);
+                return `
+                    <div class="portfolio-item">
+                        <div class="portfolio-item-label">File ${index + 1}</div>
+                        ${isLink
+                            ? `<a href="${safeText}" target="_blank" rel="noopener noreferrer">${safeText}</a>`
+                            : `<span>${safeText}</span>`
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function buildArtistDetailsContent(artist, fallbackStatus = 'Active', subscriptionDetails = 'No active subscription') {
+            const accountStatus = normalizeAccountStatus(artist.status || fallbackStatus);
+            const verification = (artist.verification_status || 'pending').toLowerCase();
+            const fullName = artist.name || `${artist.first_name || ''} ${artist.last_name || ''}`.trim();
+
+            return `
+                <div class="artist-accordion-header">
+                    <div>
+                        <h4>${escapeHtml(fullName || 'Artist')}</h4>
+                        <p>${escapeHtml(artist.category || 'Unknown Category')}</p>
+                    </div>
+                    <div class="artist-accordion-badges">
+                        <span id="detail-status-${artist.id}" class="status ${getStatusClass(accountStatus)}">${escapeHtml(accountStatus)}</span>
+                        <span class="verification-badge verification-${escapeHtml(verification)}">${escapeHtml(verification.toUpperCase())}</span>
+                    </div>
+                </div>
+                <div class="artist-accordion-grid">
+                    <div class="artist-accordion-card">
+                        <h5>Profile Information</h5>
+                        <div class="detail-list">
+                            <div><strong>Name:</strong> ${escapeHtml(fullName || 'N/A')}</div>
+                            <div><strong>Email:</strong> ${escapeHtml(artist.email || 'N/A')}</div>
+                            <div><strong>Phone:</strong> ${escapeHtml(artist.phone || 'N/A')}</div>
+                            <div><strong>Category:</strong> ${escapeHtml(artist.category || 'N/A')}</div>
+                            <div><strong>Experience:</strong> ${escapeHtml(artist.experience_years || 0)} years</div>
+                            <div><strong>Created:</strong> ${escapeHtml(formatDate(artist.created_at))}</div>
+                        </div>
+                    </div>
+                    <div class="artist-accordion-card">
+                        <h5>Account & Subscription</h5>
+                        <div class="detail-list">
+                            <div><strong>Account Status:</strong></div>
+                            <div>
+                                <select id="status-select-${artist.id}" class="detail-status-select" onchange="handleAccountStatusChange(${artist.id}, this.value)">
+                                    <option value="Active" ${accountStatus === 'Active' ? 'selected' : ''}>Active</option>
+                                    <option value="Pending" ${accountStatus === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="Suspended" ${accountStatus === 'Suspended' ? 'selected' : ''}>Suspended</option>
+                                </select>
+                            </div>
+                            <div><strong>Subscription:</strong> ${escapeHtml(subscriptionDetails)}</div>
+                            <div><strong>Portfolio Path:</strong> ${escapeHtml(artist.description || artist.portfolio_path || 'N/A')}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="artist-accordion-card portfolio-card">
+                    <h5>Portfolio Files</h5>
+                    <div class="portfolio-grid">
+                        ${buildPortfolioGrid(artist.description || artist.portfolio_path || '')}
+                    </div>
+                </div>
+                <div class="artist-detail-actions">
+                    <button class="action-btn edit-btn" onclick="editArtist(${artist.id})"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="action-btn suspend-btn" onclick="suspendArtist(${artist.id})"><i class="fas fa-user-slash"></i> Suspend</button>
+                    <button class="action-btn delete-btn" onclick="deleteArtist(${artist.id})"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+            `;
+        }
+
+        function updateArtistStatusUI(artistId, newStatus) {
+            const row = document.getElementById(`artist-row-${artistId}`);
+            if (!row) return;
+            const normalized = normalizeAccountStatus(newStatus);
+            const statusClass = getStatusClass(normalized);
+
+            const mainBadge = row.querySelector('[data-status-badge]');
+            if (mainBadge) {
+                mainBadge.textContent = normalized;
+                mainBadge.className = `status ${statusClass}`;
+            }
+
+            const detailsBadge = document.getElementById(`detail-status-${artistId}`);
+            if (detailsBadge) {
+                detailsBadge.textContent = normalized;
+                detailsBadge.className = `status ${statusClass}`;
+            }
+
+            const detailsSelect = document.getElementById(`status-select-${artistId}`);
+            if (detailsSelect && detailsSelect.value !== normalized) {
+                detailsSelect.value = normalized;
+            }
+        }
+
+        function handleAccountStatusChange(artistId, newStatus) {
+            updateArtistStatusUI(artistId, newStatus);
+        }
+
+        function suspendArtist(artistId) {
+            updateArtistStatusUI(artistId, 'Suspended');
+        }
+
+        function closeArtistDetailsRow(detailsRow) {
+            if (!detailsRow) return;
+            detailsRow.classList.remove('open');
+            setTimeout(() => {
+                if (detailsRow.parentNode) detailsRow.remove();
+            }, 220);
+        }
+
+        async function viewArtist(artistId) {
+            const row = document.getElementById(`artist-row-${artistId}`);
+            if (!row) return;
+
+            const currentDetails = row.nextElementSibling;
+            if (currentDetails && currentDetails.classList.contains('artist-details-row')) {
+                closeArtistDetailsRow(currentDetails);
+                return;
+            }
+
+            document.querySelectorAll('.artist-details-row.open').forEach((detailRow) => {
+                closeArtistDetailsRow(detailRow);
+            });
+
+            try {
+                let artist = artistDetailsCache.get(artistId);
+                if (!artist) {
+                    const response = await fetch(`/api/artists/${artistId}`, { credentials: 'include' });
+                    if (response.url.includes('/login')) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    const data = await response.json();
+                    if (!data.success) {
+                        alert(`Error: ${data.error}`);
+                        return;
+                    }
+                    artist = data.artist;
+                    artistDetailsCache.set(artistId, artist);
+                }
+
+                const subscriptionText = row.querySelector('td:nth-child(2) span')
+                    ? row.querySelector('td:nth-child(2) span').textContent.trim()
+                    : 'No active subscription';
+                const mainStatus = row.querySelector('[data-status-badge]')?.textContent || artist.status;
+
+                const detailsRow = document.createElement('tr');
+                detailsRow.className = 'artist-details-row';
+                detailsRow.setAttribute('data-artist-details-id', String(artistId));
+                detailsRow.innerHTML = `
+                    <td colspan="7">
+                        <div class="artist-accordion">
+                            ${buildArtistDetailsContent(artist, mainStatus, subscriptionText)}
+                        </div>
+                    </td>
+                `;
+                row.insertAdjacentElement('afterend', detailsRow);
+                requestAnimationFrame(() => detailsRow.classList.add('open'));
+            } catch (error) {
+                alert('Failed to load artist details.');
+            }
+        }
+
+        async function editArtist(artistId) {
+            try {
+                closeModal();
+                document.getElementById('artistFormModal').style.display = 'flex';
+                document.getElementById('formTitle').textContent = 'Loading...';
+                clearAllErrors();
+
+                const response = await fetch('/api/artists/' + artistId, { credentials: 'include' });
+                if (response.url.includes('/login')) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert('Error: ' + data.error);
+                    closeArtistForm();
+                    return;
+                }
+
+                const artist = data.artist;
+                document.getElementById('formTitle').textContent = 'Edit Artist';
+                document.getElementById('artistId').value = artist.id;
+                document.getElementById('first_name').value = artist.first_name || '';
+                document.getElementById('last_name').value = artist.last_name || '';
+                document.getElementById('gender').value = artist.gender || '';
+                document.getElementById('phone').value = artist.phone || '';
+                document.getElementById('email').value = artist.email || '';
+                document.getElementById('category').value = artist.category || '';
+                document.getElementById('experience_years').value = artist.experience_years ? String(artist.experience_years) : '';
+                document.getElementById('portfolio_path').value = artist.description || artist.portfolio_path || '';
+                document.getElementById('status').value = artist.status || 'Active';
+                document.getElementById('saveText').textContent = 'Update Artist';
+
+                if (artist.dob) {
+                    const date = new Date(artist.dob);
+                    document.getElementById('dob').value = date.toISOString().split('T')[0];
+                } else {
+                    document.getElementById('dob').value = '';
+                }
+
+                await loadStates(artist.state_id || '');
+                await loadCities(artist.state_id || '', artist.city_id || '');
+                await loadPincode(artist.city_id || '');
+            } catch (error) {
+                alert('Failed to load artist data.');
+                closeArtistForm();
+            }
+        }
+
+        async function deleteArtist(artistId) {
+            const row = document.getElementById(`artist-row-${artistId}`);
+            const artistName = row ? row.querySelector('td:nth-child(2) strong').textContent : `Artist #${artistId}`;
+            if (!confirm(`Are you sure you want to delete "${artistName}"?`)) return;
+
+            try {
+                const response = await fetch(`/api/artists/${artistId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                alert(data.message);
+                if (row) {
+                    const detailsRow = row.nextElementSibling && row.nextElementSibling.classList.contains('artist-details-row')
+                        ? row.nextElementSibling
+                        : null;
+                    row.style.transition = 'all 0.3s';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(-50px)';
+                    setTimeout(() => {
+                        if (detailsRow) detailsRow.remove();
+                        row.remove();
+                        const title = document.querySelector('.page-header h2');
+                        const remaining = document.querySelectorAll('#artistsTable tbody tr.artist-main-row').length;
+                        if (title) title.textContent = `Artists Management (${remaining} Artists)`;
+                    }, 300);
+                }
+                closeModal();
+            } catch (error) {
+                alert('Failed to delete artist.');
+            }
+        }
+
+        async function showArtistForm() {
+            document.getElementById('artistFormModal').style.display = 'flex';
+            document.getElementById('formTitle').textContent = 'Add New Artist';
+            document.getElementById('artistForm').reset();
+            document.getElementById('artistId').value = '';
+            document.getElementById('saveText').textContent = 'Save Artist';
+            document.getElementById('city_id').innerHTML = '<option value="">Select City</option>';
+            document.getElementById('pincode').value = '';
+            clearAllErrors();
+
+            try {
+                await loadStates();
+            } catch (error) {
+                setFieldError('state_id', 'stateError', 'Failed to load states.');
+            }
+        }
+
+        async function saveArtist(e) {
+            e.preventDefault();
+            clearAllErrors();
+            if (!validateArtistForm()) return;
+
+            const artistId = document.getElementById('artistId').value;
+            const isEdit = !!artistId;
+            const formData = {
+                first_name: document.getElementById('first_name').value.trim(),
+                last_name: document.getElementById('last_name').value.trim(),
+                gender: document.getElementById('gender').value,
+                phone: document.getElementById('phone').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                dob: document.getElementById('dob').value || null,
+                category: document.getElementById('category').value,
+                experience_years: document.getElementById('experience_years').value,
+                pincode: document.getElementById('pincode').value.trim(),
+                state_id: parseInt(document.getElementById('state_id').value, 10),
+                city_id: parseInt(document.getElementById('city_id').value, 10),
+                portfolio_path: document.getElementById('portfolio_path').value.trim(),
+                status: document.getElementById('status').value
+            };
+
+            try {
+                document.getElementById('saveText').style.display = 'none';
+                document.getElementById('loadingSpinner').style.display = 'inline';
+                document.getElementById('saveBtn').disabled = true;
+
+                const endpoint = isEdit ? `/api/artists/${artistId}` : '/add_artist';
+                const method = isEdit ? 'PUT' : 'POST';
+                const response = await fetch(endpoint, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(formData)
+                });
+                const data = await response.json();
+
+                if (!data.success) {
+                    if (data.field_errors) {
+                        if (data.field_errors.first_name) setFieldError('first_name', 'firstNameError', data.field_errors.first_name);
+                        if (data.field_errors.last_name) setFieldError('last_name', 'lastNameError', data.field_errors.last_name);
+                        if (data.field_errors.phone) setFieldError('phone', 'phoneError', data.field_errors.phone);
+                        if (data.field_errors.email) setFieldError('email', 'emailError', data.field_errors.email);
+                        if (data.field_errors.dob) setFieldError('dob', 'dobError', data.field_errors.dob);
+                        if (data.field_errors.gender) setFieldError('gender', 'genderError', data.field_errors.gender);
+                        if (data.field_errors.category) setFieldError('category', 'categoryError', data.field_errors.category);
+                        if (data.field_errors.experience_years) setFieldError('experience_years', 'experienceError', data.field_errors.experience_years);
+                        if (data.field_errors.state_id) setFieldError('state_id', 'stateError', data.field_errors.state_id);
+                        if (data.field_errors.city_id) setFieldError('city_id', 'cityError', data.field_errors.city_id);
+                        if (data.field_errors.pincode) setFieldError('pincode', 'pincodeError', data.field_errors.pincode);
+                        if (data.field_errors.schema_email || data.field_errors.schema_experience_years) {
+                            setFormMessage(data.field_errors.schema_email || data.field_errors.schema_experience_years, 'error');
+                            return;
+                        }
+                    }
+                    setFormMessage(data.error || 'Failed to save artist', 'error');
+                    return;
+                }
+
+                setFormMessage(data.message || 'Artist saved successfully!', 'success');
+                await refreshArtistsTable();
+                setTimeout(() => {
+                    closeArtistForm();
+                }, 700);
+            } catch (error) {
+                setFormMessage('Failed to save artist.', 'error');
+            } finally {
+                document.getElementById('saveText').style.display = 'inline';
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('saveBtn').disabled = false;
+            }
+        }
+
+        function setFormMessage(message, type = 'success') {
+            const node = document.getElementById('formSuccessMessage');
+            node.textContent = message;
+            node.classList.remove('success', 'error');
+            node.classList.add(type);
+            node.style.display = 'block';
+        }
+
+        function escapeHtml(value) {
+            return String(value || '').replace(/[&<>"']/g, (ch) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[ch]));
+        }
+
+        async function refreshArtistsTable() {
+            const response = await fetch('/api/artists', { credentials: 'include' });
+            const data = await response.json();
+            if (!data.success || !Array.isArray(data.artists)) return;
+
+            const tbody = document.querySelector('#artistsTable tbody');
+            const emptyState = document.querySelector('.empty-state');
+            tbody.innerHTML = '';
+            artistDetailsCache.clear();
+
+            data.artists.forEach((artist) => {
+                const statusText = normalizeAccountStatus(artist.status || 'Active');
+                const statusClass = getStatusClass(statusText);
+                const categoryName = (artist.category || 'Unknown');
+                const safeCategory = categoryName.toLowerCase();
+                const tr = document.createElement('tr');
+                tr.className = 'artist-main-row';
+                tr.id = `artist-row-${artist.id}`;
+                tr.setAttribute('data-artist-id', String(artist.id));
+                tr.innerHTML = `
+                    <td>${artist.id}</td>
+                    <td><strong>${escapeHtml(artist.name)}</strong></td>
+                    <td><span class="category ${escapeHtml(safeCategory)}">${escapeHtml(categoryName)}</span></td>
+                    <td>${escapeHtml(artist.price || 'N/A')}</td>
+                    <td><span class="status ${statusClass}" data-status-badge>${escapeHtml(statusText)}</span></td>
+                    <td><span class="verification-badge verification-${escapeHtml(artist.verification_status || 'pending')}">${escapeHtml((artist.verification_status || 'pending').toUpperCase())}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn view-btn" onclick="viewArtist(${artist.id})" title="View Details"><i class="fas fa-eye"></i> View Details</button>
+                            <button class="action-btn edit-btn" onclick="editArtist(${artist.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn suspend-btn" onclick="suspendArtist(${artist.id})" title="Suspend"><i class="fas fa-user-slash"></i></button>
+                            <button class="action-btn delete-btn" onclick="deleteArtist(${artist.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (emptyState) {
+                emptyState.style.display = data.artists.length ? 'none' : 'block';
+            }
+
+            const title = document.querySelector('.page-header h2');
+            if (title) {
+                title.textContent = `Artists Management (${data.artists.length} Artists)`;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('artistModal').style.display = 'none';
+        }
+
+        function closeArtistForm() {
+            document.getElementById('artistFormModal').style.display = 'none';
+        }
+
+        function searchArtists() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#artistsTable tbody tr.artist-main-row');
+            rows.forEach((row) => {
+                const name = row.cells[1].textContent.toLowerCase();
+                const category = row.cells[2].textContent.toLowerCase();
+                const isMatch = name.includes(input) || category.includes(input);
+                row.style.display = isMatch ? '' : 'none';
+                const detailsRow = row.nextElementSibling;
+                if (!isMatch && detailsRow && detailsRow.classList.contains('artist-details-row')) {
+                    closeArtistDetailsRow(detailsRow);
+                }
+            });
+        }
+
+        function filterByCategory(category) {
+            const rows = document.querySelectorAll('#artistsTable tbody tr.artist-main-row');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            filterBtns.forEach((btn) => {
+                btn.classList.remove('active');
+                if (btn.dataset.category === category) btn.classList.add('active');
+            });
+            rows.forEach((row) => {
+                const rowCategory = row.querySelector('.category').textContent.toLowerCase();
+                const isMatch = category === 'all' || rowCategory === category;
+                row.style.display = isMatch ? '' : 'none';
+                const detailsRow = row.nextElementSibling;
+                if (!isMatch && detailsRow && detailsRow.classList.contains('artist-details-row')) {
+                    closeArtistDetailsRow(detailsRow);
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('artistForm').addEventListener('submit', saveArtist);
+            document.getElementById('first_name').addEventListener('input', () => validateNameField('first_name', 'firstNameError'));
+            document.getElementById('last_name').addEventListener('input', () => validateNameField('last_name', 'lastNameError'));
+            document.getElementById('phone').addEventListener('input', validatePhoneField);
+            document.getElementById('email').addEventListener('input', validateEmailField);
+            document.getElementById('dob').addEventListener('change', validateDOBField);
+            document.getElementById('gender').addEventListener('change', () => validateRequiredSelect('gender', 'genderError', 'Gender is required.'));
+            document.getElementById('category').addEventListener('change', () => validateRequiredSelect('category', 'categoryError', 'Category is required.'));
+            document.getElementById('experience_years').addEventListener('change', validateExperienceField);
+            document.getElementById('state_id').addEventListener('change', async (event) => {
+                const stateId = event.target.value;
+                validateRequiredSelect('state_id', 'stateError', 'State is required.');
+                try {
+                    await loadCities(stateId);
+                } catch (error) {
+                    setFieldError('city_id', 'cityError', 'Failed to load cities.');
+                }
+            });
+            document.getElementById('city_id').addEventListener('change', async (event) => {
+                const cityId = event.target.value;
+                validateRequiredSelect('city_id', 'cityError', 'City is required.');
+                try {
+                    await loadPincode(cityId);
+                } catch (error) {
+                    setFieldError('pincode', 'pincodeError', 'Failed to load pincode.');
+                }
+            });
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchArtists();
+            });
+            window.onclick = function(event) {
+                const modal = document.getElementById('artistModal');
+                const formModal = document.getElementById('artistFormModal');
+                if (event.target === modal) closeModal();
+                if (event.target === formModal) closeArtistForm();
+            };
+        });
+    </script>
+{% endblock %}
+

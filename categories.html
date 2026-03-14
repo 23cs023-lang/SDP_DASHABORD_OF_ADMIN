@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Category Management | CreoVibe Admin{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/categories.css') }}">{% endblock %}
+
+{% block content %}
+<style>
+.page-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
+}
+.btn-primary {
+    background: white !important;
+    color: #667eea !important;
+    border: 2px solid #667eea !important;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+    transform: translateY(-1px);
+}
+.btn-danger {
+    background: white !important;
+    color: #e53e3e !important;
+    border: 2px solid #e53e3e !important;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+.btn-danger:hover {
+    background: #e53e3e !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(229,62,62,0.3);
+    transform: translateY(-1px);
+}
+.table-container {
+    background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f3f4f6;
+}
+table {
+    width: 100%; border-collapse: collapse; margin-top: 10px;
+}
+th {
+    text-align: left; padding: 12px 16px; color: #6b7280; font-weight: 600; border-bottom: 2px solid #f3f4f6; text-transform: uppercase; font-size: 13px;
+}
+td {
+    padding: 16px; border-bottom: 1px solid #f3f4f6; color: #1f2937;
+}
+tr:hover td {
+    background-color: #f9fafb;
+}
+/* Modal Styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    background: white;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    position: relative;
+    padding: 0;
+    overflow: hidden;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.close-btn {
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+    transition: 0.2s;
+}
+
+.close-btn:hover {
+    opacity: 0.8;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-body label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.modal-body input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.modal-body input:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #fafafa;
+}
+
+.btn-outline {
+    background: white !important;
+    border: 2px solid #667eea !important;
+    color: #667eea !important;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+    background: #f0f4ff !important;
+}
+
+.btn-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+</style>
+
+<div class="page-header">
+    <h2 style="font-weight: 700; color: #1f2937;">Category Management</h2>
+    <div>
+        <button class="btn-primary" type="button" onclick="openCategoryModal()">
+            <i class="fas fa-plus"></i> Add Category
+        </button>
+    </div>
+</div>
+
+<div class="table-container">
+    <table id="categoriesTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Category Name</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="categoriesTableBody">
+        </tbody>
+    </table>
+    <div id="emptyState" class="empty-state" style="display: none; text-align: center; padding: 40px;">
+        <i class="fas fa-tags" style="font-size: 48px; color: #d1d5db; margin-bottom: 16px;"></i>
+        <h3 style="color: #4b5563;">No Categories Found</h3>
+        <p style="color: #9ca3af;">Add your first category to make it available for artists.</p>
+    </div>
+</div>
+
+<div id="categoryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="categoryModalTitle">Add Category</h3>
+            <span class="close-btn" onclick="closeCategoryModal()">&times;</span>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="categoryNameInput">Category Name *</label>
+                <input type="text" id="categoryNameInput" maxlength="100" placeholder="Enter category name">
+                <small id="categoryNameError" class="form-error" style="color: #ef4444; font-size: 12px; display: block; margin-top: 4px;"></small>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-outline" type="button" onclick="closeCategoryModal()">
+                Cancel
+            </button>
+            <button class="btn-gradient" type="button" onclick="saveCategory()">
+                Save Category
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let categories = [];
+let editingCategoryId = null;
+
+function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+}
+
+function showMessage(message) {
+    alert(message);
+}
+
+function renderCategories() {
+    const tbody = document.getElementById('categoriesTableBody');
+    const emptyState = document.getElementById('emptyState');
+    const table = document.getElementById('categoriesTable');
+
+    tbody.innerHTML = '';
+
+    if (!categories.length) {
+        table.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+
+    table.style.display = 'table';
+    emptyState.style.display = 'none';
+
+    categories.forEach(category => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${category.category_id}</td>
+            <td><strong>${category.category_name}</strong></td>
+            <td>${formatDate(category.created_at)}</td>
+            <td>
+                <div class="action-buttons" style="display: flex; gap: 8px;">
+                    <button class="btn-primary" type="button" onclick="openCategoryModal(${category.category_id})">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn-danger" type="button" onclick="deleteCategory(${category.category_id})">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function loadCategories() {
+    try {
+        const response = await fetch('/api/admin/categories', { credentials: 'include' });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to load categories');
+        }
+        categories = data.categories || [];
+        renderCategories();
+    } catch (error) {
+        showMessage(`Error loading categories: ${error.message}`);
+    }
+}
+
+function openCategoryModal(categoryId = null) {
+    editingCategoryId = categoryId;
+    const modal = document.getElementById('categoryModal');
+    const title = document.getElementById('categoryModalTitle');
+    const input = document.getElementById('categoryNameInput');
+    const error = document.getElementById('categoryNameError');
+
+    error.textContent = '';
+    input.value = '';
+
+    if (categoryId) {
+        const category = categories.find(c => c.category_id === categoryId);
+        title.textContent = 'Edit Category';
+        input.value = category ? category.category_name : '';
+    } else {
+        title.textContent = 'Add Category';
+    }
+
+    modal.style.display = 'flex';
+    input.focus();
+}
+
+function closeCategoryModal() {
+    document.getElementById('categoryModal').style.display = 'none';
+    editingCategoryId = null;
+}
+
+async function saveCategory() {
+    const input = document.getElementById('categoryNameInput');
+    const error = document.getElementById('categoryNameError');
+    const categoryName = input.value.trim();
+
+    if (!categoryName) {
+        error.textContent = 'Category name is required';
+        return;
+    }
+    error.textContent = '';
+
+    try {
+        let response;
+        if (editingCategoryId) {
+            response = await fetch(`/api/admin/categories/${editingCategoryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ category_name: categoryName })
+            });
+        } else {
+            response = await fetch('/api/admin/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ category_name: categoryName })
+            });
+        }
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to save category');
+        }
+
+        closeCategoryModal();
+        await loadCategories();
+        showMessage(data.message || 'Category saved successfully');
+    } catch (err) {
+        error.textContent = err.message;
+    }
+}
+
+async function deleteCategory(categoryId) {
+    const category = categories.find(c => c.category_id === categoryId);
+    if (!confirm(`Delete category "${category ? category.category_name : categoryId}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/categories/${categoryId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to delete category');
+        }
+        await loadCategories();
+        showMessage(data.message || 'Category deleted successfully');
+    } catch (error) {
+        showMessage(`Error: ${error.message}`);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadCategories();
+    window.onclick = function(event) {
+        const modal = document.getElementById('categoryModal');
+        if (event.target === modal) {
+            closeCategoryModal();
+        }
+    };
+});
+</script>
+{% endblock %}
+

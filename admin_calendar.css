@@ -1,0 +1,85 @@
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 15px;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #2c3e50;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legend-dot.confirmed { background: #2ecc71; }
+.legend-dot.pending { background: #f1c40f; }
+.legend-dot.cancelled { background: #e74c3c; }
+.legend-dot.completed { background: #3498db; }
+
+#adminCalendar {
+    min-height: 620px;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.2rem;
+    color: #2c3e50;
+}
+
+.fc .fc-button-primary {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active,
+.fc .fc-button-primary:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+}
+
+.admin-calendar-modal {
+    max-width: 700px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 20px;
+    margin: 15px 0 20px;
+}
+
+#adminMessage {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    resize: vertical;
+}
+
+#adminMessage:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+@media (max-width: 768px) {
+    #adminCalendar {
+        min-height: 500px;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

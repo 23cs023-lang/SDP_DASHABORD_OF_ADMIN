@@ -1,0 +1,618 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription Plans | CreoVibe Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --hover-gradient: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        --success-bg: #e6fffa;
+        --success-text: #2f855a;
+        --inactive-bg: #f7fafc;
+        --inactive-text: #718096;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .btn-gradient {
+        background: var(--primary-gradient);
+        color: white !important;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-gradient:hover {
+        background: var(--hover-gradient);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        transform: translateY(-2px);
+    }
+
+    /* Card Grid */
+    .plans-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    .plan-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #edf2f7;
+    }
+
+    .plan-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.15);
+    }
+
+    .plan-card-header {
+        padding: 24px;
+        position: relative;
+        border-bottom: 1px solid #f7fafc;
+    }
+
+    .plan-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #2d3748;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .plan-status {
+        position: absolute;
+        top: 24px;
+        right: 24px;
+    }
+
+    .plan-price {
+        padding: 0 24px 24px;
+        margin-top: 15px;
+    }
+
+    .price-large {
+        font-size: 2.25rem;
+        font-weight: 800;
+        color: #2d3748;
+    }
+
+    .price-sub {
+        font-size: 1rem;
+        color: #718096;
+        font-weight: 500;
+    }
+
+    .plan-duration {
+        display: block;
+        color: #667eea;
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-top: 5px;
+    }
+
+    .plan-body {
+        padding: 24px;
+        flex-grow: 1;
+        background: #fcfdfe;
+    }
+
+    .features-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #a0aec0;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: block;
+    }
+
+    .plan-features {
+        color: #4a5568;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+
+    .plan-footer {
+        padding: 20px 24px;
+        background: white;
+        border-top: 1px solid #edf2f7;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .footer-actions-top {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    /* Buttons */
+    .btn-card {
+        padding: 10px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-edit {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+    }
+
+    .btn-edit:hover {
+        background: var(--primary-gradient);
+        color: white;
+        border-color: transparent;
+    }
+
+    .btn-deactivate {
+        background: white;
+        color: #e53e3e;
+        border: 2px solid #e53e3e;
+    }
+
+    .btn-deactivate:hover {
+        background: #e53e3e;
+        color: white;
+    }
+
+    .btn-notify {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        width: 100%;
+    }
+
+    .btn-notify:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    /* Status Badges */
+    .badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-active { background: var(--success-bg); color: var(--success-text); }
+    .badge-inactive { background: var(--inactive-bg); color: var(--inactive-text); }
+
+    /* Modal Styling */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-container {
+        background: white;
+        width: 100%;
+        max-width: 500px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        background: var(--primary-gradient);
+        padding: 20px 24px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+
+    .modal-close {
+        background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;
+    }
+
+    .modal-close:hover { opacity: 1; }
+
+    .modal-body { padding: 24px; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #4a5568; font-size: 0.9rem; }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 1rem; transition: all 0.2s;
+    }
+
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+        border-color: #667eea; outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-error { color: #e53e3e; font-size: 0.8rem; margin-top: 5px; }
+
+    .modal-footer {
+        padding: 20px 24px;
+        border-top: 1px solid #edf2f7;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        background: #f8fafc;
+    }
+
+    .btn-cancel {
+        padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; background: white; border: 2px solid #e2e8f0; color: #718096;
+    }
+
+    .btn-cancel:hover { background: #f7fafc; border-color: #d1d5db; }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-state i { font-size: 4rem; color: #e2e8f0; margin-bottom: 20px; }
+    .empty-state h3 { font-size: 1.5rem; color: #4a5568; margin-bottom: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2 style="font-weight: 700;">Subscription Plan Management ({{ plans_count }})</h2>
+    <div class="header-actions">
+        <button class="btn-gradient" type="button" onclick="openPlanModal()">
+            <i class="fas fa-plus"></i> Add New Plan
+        </button>
+    </div>
+</div>
+
+<div id="plans-container">
+    <!-- Grid of cards will be rendered here by JS -->
+    <div class="plans-grid" id="plansGrid"></div>
+</div>
+
+<div id="plansEmptyState" class="empty-state" style="display: none;">
+    <i class="fas fa-layer-group"></i>
+    <h3>No Subscription Plans Found</h3>
+    <p>Add a plan to make it available for new subscriptions.</p>
+</div>
+
+<!-- Add New Plan Modal -->
+<div id="planModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="planModalTitle">Add New Plan</h3>
+            <button class="modal-close" onclick="closePlanModal()">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="planNameInput">Plan Name *</label>
+                <input type="text" id="planNameInput" maxlength="100" placeholder="e.g. Premium Membership">
+                <small id="planNameError" class="form-error"></small>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label for="amountInput">Amount (₹) *</label>
+                    <input type="number" id="amountInput" min="0" step="0.01" placeholder="99.00">
+                    <small id="amountError" class="form-error"></small>
+                </div>
+                <div class="form-group">
+                    <label for="durationInput">Duration (Days) *</label>
+                    <input type="number" id="durationInput" min="1" step="1" placeholder="30">
+                    <small id="durationError" class="form-error"></small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="featuresInput">Features List</label>
+                <textarea id="featuresInput" rows="3" placeholder="Enter plan features (one per line)"></textarea>
+                <small id="featuresError" class="form-error"></small>
+            </div>
+
+            <div class="form-group">
+                <label for="statusInput">Initial Status</label>
+                <select id="statusInput">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                <small id="statusError" class="form-error"></small>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closePlanModal()">Cancel</button>
+            <button class="btn-gradient" onclick="savePlan()">
+                <i class="fas fa-save"></i> Save Plan
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let plans = {{ plans|tojson }};
+let editingPlanId = null;
+
+function formatAmount(amount) {
+    const numeric = Number(amount || 0);
+    return `₹${numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+}
+
+function normalizeStatus(value) {
+    return (value || 'active').toString().toLowerCase() === 'inactive' ? 'inactive' : 'active';
+}
+
+function statusBadge(status) {
+    const normalized = normalizeStatus(status);
+    const cls = normalized === 'active' ? 'badge-active' : 'badge-inactive';
+    return `<span class="badge ${cls}">${normalized.toUpperCase()}</span>`;
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function showMessage(message) {
+    // Custom styled alert or toast could go here, but using alert for now to maintain behavior
+    alert(message);
+}
+
+function renderPlans() {
+    const grid = document.getElementById('plansGrid');
+    const emptyState = document.getElementById('plansEmptyState');
+    grid.innerHTML = '';
+
+    if (!plans.length) {
+        grid.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+    }
+
+    grid.style.display = 'grid';
+    emptyState.style.display = 'none';
+
+    plans.forEach((plan) => {
+        const isInactive = normalizeStatus(plan.Status) === 'inactive';
+        const card = document.createElement('div');
+        card.className = 'plan-card';
+        card.innerHTML = `
+            <div class="plan-card-header">
+                <span class="plan-name">${escapeHtml(plan.Plan_Name)}</span>
+                <div class="plan-status">${statusBadge(plan.Status)}</div>
+                <div class="plan-price">
+                    <span class="price-large">₹${Number(plan.Amount || 0).toLocaleString()}</span>
+                    <span class="price-sub">/one-time</span>
+                    <span class="plan-duration">${Number(plan.Duration_Days || 0)} Days Access</span>
+                </div>
+            </div>
+            <div class="plan-body">
+                <span class="features-label">Included Features</span>
+                <div class="plan-features">${escapeHtml(plan.Features || 'No features listed')}</div>
+            </div>
+            <div class="plan-footer">
+                <div class="footer-actions-top">
+                    <button class="btn-card btn-edit" onclick="openPlanModal(${Number(plan.Plan_ID)})">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn-card btn-deactivate" onclick="deactivatePlan(${Number(plan.Plan_ID)})" ${isInactive ? 'disabled' : ''}>
+                        <i class="fas fa-ban"></i> ${isInactive ? 'Inactive' : 'Deactivate'}
+                    </button>
+                </div>
+                <form method="post" action="/admin/subscription-plans/${Number(plan.Plan_ID)}/notify" onsubmit="return confirmNotify()" style="margin: 0;">
+                    <button class="btn-card btn-notify" type="submit">
+                        <i class="fas fa-bell"></i> Notify Artists
+                    </button>
+                </form>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function clearErrors() {
+    document.getElementById('planNameError').textContent = '';
+    document.getElementById('amountError').textContent = '';
+    document.getElementById('durationError').textContent = '';
+    document.getElementById('featuresError').textContent = '';
+    document.getElementById('statusError').textContent = '';
+}
+
+function openPlanModal(planId = null) {
+    editingPlanId = planId;
+    clearErrors();
+
+    const title = document.getElementById('planModalTitle');
+    const nameInput = document.getElementById('planNameInput');
+    const amountInput = document.getElementById('amountInput');
+    const durationInput = document.getElementById('durationInput');
+    const featuresInput = document.getElementById('featuresInput');
+    const statusInput = document.getElementById('statusInput');
+
+    if (planId) {
+        const plan = plans.find((item) => Number(item.Plan_ID) === Number(planId));
+        title.textContent = 'Edit Plan';
+        nameInput.value = plan ? plan.Plan_Name : '';
+        amountInput.value = plan ? Number(plan.Amount || 0) : '';
+        durationInput.value = plan ? Number(plan.Duration_Days || 0) : '';
+        featuresInput.value = plan ? (plan.Features || '') : '';
+        statusInput.value = plan ? normalizeStatus(plan.Status) : 'active';
+    } else {
+        title.textContent = 'Add New Plan';
+        nameInput.value = '';
+        amountInput.value = '';
+        durationInput.value = '';
+        featuresInput.value = '';
+        statusInput.value = 'active';
+    }
+
+    document.getElementById('planModal').style.display = 'flex';
+    nameInput.focus();
+}
+
+function closePlanModal() {
+    document.getElementById('planModal').style.display = 'none';
+    editingPlanId = null;
+}
+
+function validateFormPayload(payload) {
+    clearErrors();
+    let valid = true;
+
+    if (!payload.plan_name) {
+        document.getElementById('planNameError').textContent = 'Plan name is required';
+        valid = false;
+    }
+    if (!Number.isFinite(Number(payload.amount)) || Number(payload.amount) <= 0) {
+        document.getElementById('amountError').textContent = 'Amount must be a positive number';
+        valid = false;
+    }
+    if (!Number.isInteger(Number(payload.duration_days)) || Number(payload.duration_days) <= 0) {
+        document.getElementById('durationError').textContent = 'Duration must be a positive whole number';
+        valid = false;
+    }
+    if (!['active', 'inactive'].includes(payload.status)) {
+        document.getElementById('statusError').textContent = 'Invalid status selected';
+        valid = false;
+    }
+
+    return valid;
+}
+
+async function savePlan() {
+    const payload = {
+        plan_name: document.getElementById('planNameInput').value.trim(),
+        amount: document.getElementById('amountInput').value,
+        duration_days: document.getElementById('durationInput').value,
+        features: document.getElementById('featuresInput').value.trim(),
+        status: document.getElementById('statusInput').value
+    };
+
+    if (!validateFormPayload(payload)) return;
+
+    const endpoint = editingPlanId ? `/api/admin/subscription-plans/${editingPlanId}` : '/api/admin/subscription-plans';
+    const method = editingPlanId ? 'PUT' : 'POST';
+
+    try {
+        const response = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            const fieldErrors = data.errors || {};
+            if (fieldErrors.plan_name) document.getElementById('planNameError').textContent = fieldErrors.plan_name;
+            if (fieldErrors.amount) document.getElementById('amountError').textContent = fieldErrors.amount;
+            if (fieldErrors.duration_days) document.getElementById('durationError').textContent = fieldErrors.duration_days;
+            if (fieldErrors.features) document.getElementById('featuresError').textContent = fieldErrors.features;
+            if (fieldErrors.status) document.getElementById('statusError').textContent = fieldErrors.status;
+            throw new Error(data.error || 'Failed to save plan');
+        }
+
+        closePlanModal();
+        await refreshPlans();
+        showMessage(data.message || 'Plan saved successfully');
+    } catch (error) {
+        if (!document.getElementById('planNameError').textContent &&
+            !document.getElementById('amountError').textContent &&
+            !document.getElementById('durationError').textContent &&
+            !document.getElementById('statusError').textContent) {
+            showMessage(error.message);
+        }
+    }
+}
+
+async function deactivatePlan(planId) {
+    if (!confirm('Deactivate this plan? Existing active subscriptions will continue until expiry.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/subscription-plans/${planId}/deactivate`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to deactivate plan');
+        }
+        await refreshPlans();
+        showMessage(data.message || 'Plan deactivated');
+    } catch (error) {
+        showMessage(error.message);
+    }
+}
+
+function confirmNotify() {
+    return confirm('Send subscription plan update notification to artists?');
+}
+
+async function refreshPlans() {
+    const response = await fetch('/api/admin/subscription-plans', { credentials: 'include' });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to load plans');
+    }
+    plans = data.plans || [];
+    renderPlans();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    renderPlans();
+    window.onclick = function(event) {
+        const modal = document.getElementById('planModal');
+        if (event.target === modal) {
+            closePlanModal();
+        }
+    };
+});
+</script>
+{% endblock %}

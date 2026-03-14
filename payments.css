@@ -1,0 +1,215 @@
+.payments-toolbar {
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-group select {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 14px;
+    min-width: 180px;
+}
+
+.review-board {
+    margin-bottom: 22px;
+}
+
+.status-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 14px;
+}
+
+.status-card {
+    background: #fff;
+    border: 1px solid #e5ebf2;
+    border-radius: 12px;
+    box-shadow: 0 8px 22px rgba(44, 62, 80, 0.08);
+    padding: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(44, 62, 80, 0.14);
+}
+
+.status-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.status-card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #2c3e50;
+}
+
+.status-card-header p {
+    margin: 3px 0 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.status-card-amount {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 15px;
+}
+
+.status-card-badges {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.status-card-dates {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #4b5b6a;
+    display: grid;
+    gap: 4px;
+}
+
+.status-card-actions {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.status-card-actions .action-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 140px;
+}
+
+.details-btn {
+    background: #2c3e50;
+    color: #fff;
+}
+
+.status-card-details {
+    margin-top: 12px;
+    border-top: 1px solid #e9eef4;
+    padding-top: 10px;
+    animation: slideFade 0.2s ease;
+}
+
+.status-card-details.open {
+    display: block;
+}
+
+.details-grid {
+    display: grid;
+    gap: 8px;
+    font-size: 13px;
+    color: #4b5b6a;
+}
+
+.payments-table-wrap {
+    margin-top: 6px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.payment-success,
+.subscription-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.payment-pending,
+.subscription-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.payment-failure,
+.subscription-inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.payments-empty {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.08);
+}
+
+.receipt-loader {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 24, 39, 0.22);
+    z-index: 1200;
+}
+
+.receipt-loader.show {
+    display: flex;
+}
+
+.loader-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 12px 28px rgba(44, 62, 80, 0.2);
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.loader-card i {
+    color: #2ecc71;
+}
+
+@keyframes slideFade {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .filter-group select {
+        min-width: 150px;
+    }
+
+    .status-card-actions .action-btn {
+        min-width: 100%;
+    }
+}

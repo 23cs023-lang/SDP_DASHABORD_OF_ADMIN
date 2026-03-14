@@ -1,0 +1,923 @@
+{% extends "base.html" %}
+
+{% block title %}Clients - Creovibe{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/clients.css') }}">
+<style>
+    /* Theme Color Overrides */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --hover-gradient: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        --danger-color: #e53e3e;
+        --danger-hover: #c53030;
+        --btn-radius: 8px;
+        --shadow-primary: 0 4px 15px rgba(102,126,234,0.5);
+        --transition: all 0.3s ease;
+    }
+
+    .status-inactive {
+        background: #edf2f7 !important;
+        color: #718096 !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    /* Add New Client Button */
+    .add-btn {
+        background: var(--primary-gradient) !important;
+        border: none !important;
+        color: white !important;
+        border-radius: var(--btn-radius) !important;
+        padding: 10px 20px !important;
+        font-weight: 600 !important;
+        transition: var(--transition) !important;
+        cursor: pointer !important;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .add-btn:hover {
+        background: var(--hover-gradient) !important;
+        box-shadow: var(--shadow-primary) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Search Button */
+    .search-box button {
+        background: var(--primary-gradient) !important; /* Changed to use variable */
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 10px 20px !important;
+        color: white !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        height: auto !important;
+    }
+
+    .search-box button:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+        box-shadow: 0 4px 15px rgba(102,126,234,0.5) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Action Buttons in Table */
+    .action-btn {
+        border-radius: 6px !important;
+        width: 35px !important;
+        height: 35px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: var(--transition) !important;
+        border: none !important;
+        color: white !important;
+        margin: 0 2px;
+        cursor: pointer;
+    }
+
+    .view-btn, .edit-btn {
+        background: var(--primary-gradient) !important;
+    }
+
+    .view-btn:hover, .edit-btn:hover {
+        background: var(--hover-gradient) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 8px rgba(102,126,234,0.3) !important;
+    }
+
+    .delete-btn {
+        background: var(--danger-color) !important;
+    }
+
+    .delete-btn:hover {
+        background: var(--danger-hover) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 8px rgba(229, 62, 62, 0.3) !important;
+    }
+
+    /* Modal Buttons */
+    .save-btn {
+        background: var(--primary-gradient) !important;
+        border: none !important;
+        color: white !important;
+        border-radius: var(--btn-radius) !important;
+        padding: 12px 25px !important;
+        font-weight: 600 !important;
+        transition: var(--transition) !important;
+        cursor: pointer;
+    }
+
+    .save-btn:hover {
+        background: var(--hover-gradient) !important;
+        box-shadow: var(--shadow-primary) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    .cancel-btn {
+        background: #718096 !important; /* Neutral slate/gray */
+        border: none !important;
+        color: white !important;
+        border-radius: var(--btn-radius) !important;
+        padding: 12px 25px !important;
+        transition: var(--transition) !important;
+        cursor: pointer;
+    }
+
+    .cancel-btn:hover {
+        background: #4a5568 !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Override input focus to match theme */
+    .admin-form input:focus, .admin-form select:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.2) !important;
+        outline: none !important;
+    }
+
+    /* Modal Styling Refinerments */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        width: 500px;
+        background: white;
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    .modal-header {
+        flex-shrink: 0 !important;
+        background: var(--primary-gradient) !important;
+        padding: 20px 24px !important;
+        color: white !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        position: relative !important;
+        border-bottom: none !important;
+        border-radius: 0 !important;
+    }
+
+    .modal-body {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 24px !important;
+        max-height: 60vh !important;
+    }
+
+    .modal-footer {
+        flex-shrink: 0 !important;
+        padding: 16px 24px !important;
+        border-top: 1px solid #eee !important;
+        background: white !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        gap: 12px !important;
+        position: static !important;
+    }
+
+    .modal-content .save-btn {
+        background: var(--primary-gradient) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 10px 24px !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: var(--transition) !important;
+    }
+
+    .modal-content .save-btn:hover {
+        background: var(--hover-gradient) !important;
+        box-shadow: 0 4px 15px rgba(102,126,234,0.5) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    .modal-content .cancel-btn {
+        background: white !important;
+        border: 2px solid #667eea !important;
+        color: #667eea !important;
+        border-radius: 8px !important;
+        padding: 10px 24px !important;
+        font-weight: 600 !important;
+        transition: var(--transition) !important;
+        cursor: pointer !important;
+    }
+
+    .modal-content .cancel-btn:hover {
+        background: #f0f0ff !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* Badge & Link Overrides - No green/teal */
+    .status-active {
+        background: rgba(102, 126, 234, 0.1) !important;
+        color: #667eea !important;
+        border: 1px solid rgba(102, 126, 234, 0.2) !important;
+    }
+
+    .gender-badge {
+        background: #f7fafc !important;
+        color: #4a5568 !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+
+    .gender-male {
+        color: #4299e1 !important;
+    }
+
+    .gender-female {
+        color: #ed64a1 !important;
+    }
+
+    .email {
+        color: #667eea !important;
+        text-decoration: none !important;
+        transition: var(--transition) !important;
+    }
+
+    .email:hover {
+        color: #764ba2 !important;
+        text-decoration: underline !important;
+    }
+
+    .close-btn {
+        color: #a0aec0 !important;
+        transition: var(--transition) !important;
+    }
+
+    .close-btn:hover {
+        color: var(--danger-color) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Clients Management ({{ clients|length }} Clients)</h2>
+    <button class="add-btn" onclick="showClientForm()">+ Add New Client</button>
+</div>
+
+<!-- Client Form Modal (hidden by default) -->
+<div id="clientFormModal" class="modal">
+    <form id="clientForm" class="modal-content" onsubmit="event.preventDefault(); saveClient();">
+        <div class="modal-header">
+            <h3 id="formTitle">Add New Client</h3>
+            <p id="formSubtitle">Create a new client profile with contact and location details.</p>
+            <button type="button" class="close-btn" onclick="closeClientForm()">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <input type="hidden" id="clientId" name="clientId">
+
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>First Name *</label>
+                    <input type="text" id="first_name" name="first_name" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" id="last_name" name="last_name" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Username *</label>
+                    <input type="text" id="username" name="username" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+
+                <div class="form-group">
+                    <label>Gender *</label>
+                    <select id="gender" name="gender" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Date of Birth *</label>
+                    <input type="date" id="dob" name="dob" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" id="phone_number" name="phone_number" pattern="[0-9]{10}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <small>10-digit number</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Pincode *</label>
+                    <input type="text" id="pincode" name="pincode" pattern="[0-9]{6}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <small>6-digit pincode</small>
+                </div>
+
+                <div class="form-group">
+                    <label>State *</label>
+                    <select id="state_id" name="state_id" onchange="loadCities(this.value)" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Select State</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>City *</label>
+                    <select id="city_id" name="city_id" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Select City</option>
+                    </select>
+                </div>
+
+            </div>
+
+            {% if username == 'admin' %}
+            <div class="account-controls-section" style="margin-top: 25px; padding-top: 20px; border-top: 1px dashed #eee;">
+                <h6 style="margin: 0 0 15px; color: #4a5568; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Account Controls</h6>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Is Admin?</label>
+                        <select id="is_admin" name="is_admin" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Is Enabled?</label>
+                        <select id="is_enabled" name="is_enabled" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="1">Yes</option>
+                            <option value="0">No</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" id="resetPwdBtn" class="cancel-btn" style="margin-right: auto; border-color: #718096 !important; color: #718096 !important;" onclick="resetPassword()">
+                <i class="fas fa-key"></i> Reset Password
+            </button>
+            <button type="button" class="cancel-btn" onclick="closeClientForm()">Cancel</button>
+            <button type="submit" class="save-btn" id="saveBtn">
+                <span id="saveText">Save Client</span>
+                <span id="loadingSpinner" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Saving...</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Client Details Modal -->
+<div id="clientDetailsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Client Details</h3>
+            <button type="button" class="close-btn" onclick="closeDetailsModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="clientDetailsContent">
+            <!-- Content will be loaded here -->
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="cancel-btn" onclick="closeDetailsModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content" style="width: 400px;">
+        <div class="modal-header" style="background: var(--danger-color) !important;">
+            <h3>Confirm Delete</h3>
+            <p>This action cannot be undone.</p>
+            <button type="button" class="close-btn" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMessage">Are you sure you want to delete this client?</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+            <button type="button" id="confirmDeleteBtn" class="save-btn" style="background: var(--danger-color) !important;">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="search-box">
+    <input type="text" placeholder="Search clients by name, email, phone..." id="searchInput" onkeyup="searchClients()">
+    <button onclick="searchClients()"><i class="fas fa-search"></i> Search</button>
+</div>
+
+<div class="table-container">
+    <table id="clientsTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Gender</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr id="client-row-{{ client.id }}">
+                <td>{{ client.id }}</td>
+                <td>
+                    <strong>{{ client.name }}</strong>
+                    {% if client.is_admin == 1 %}
+                    <span>Admin</span>
+                    {% endif %}
+                </td>
+                <td><a href="mailto:{{ client.email }}" class="email">{{ client.email }}</a></td>
+                <td>{{ client.phone }}</td>
+                <td>
+                    <span class="gender-badge gender-{{ client.gender|lower }}">
+                        {% if client.gender == 'Male' %}
+                            <i class="fas fa-mars"></i>
+                        {% elif client.gender == 'Female' %}
+                            <i class="fas fa-venus"></i>
+                        {% else %}
+                            <i class="fas fa-genderless"></i>
+                        {% endif %}
+                        {{ client.gender }}
+                    </span>
+                </td>
+                <td>
+                    {% if client.is_enabled == 1 %}
+                        <span class="status-badge status-active">
+                            <i class="fas fa-check-circle"></i> Active
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-inactive">
+                            <i class="fas fa-ban"></i> Inactive
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn view-btn" onclick="viewClient({{ client.id }})" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="action-btn edit-btn" onclick="editClient({{ client.id }})" title="Edit Client">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-btn" onclick="deleteClient({{ client.id }})" title="Delete Client">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if clients|length == 0 %}
+    <div class="empty-state">
+        <i class="fas fa-user-tie" style="font-size: 48px; color: #ccc; margin-bottom: 10px;"></i>
+        <p>No clients found in the database.</p>
+        <p>Click "Add New Client" to create your first client.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ==================== CLIENT CRUD OPERATIONS ====================
+
+    function showClientForm() {
+        document.getElementById('clientFormModal').style.display = 'flex';
+        document.getElementById('formTitle').textContent = 'Add New Client';
+        document.getElementById('formSubtitle').textContent = 'Create a new client profile with contact and location details.';
+        document.getElementById('clientForm').reset();
+        document.getElementById('clientId').value = '';
+        document.getElementById('saveText').textContent = 'Save Client';
+        
+        // Load states
+        loadStates();
+    }
+
+    function closeClientForm() {
+        document.getElementById('clientFormModal').style.display = 'none';
+    }
+
+    async function loadStates(selectedStateId = '') {
+        try {
+            const response = await fetch('/get_states', { credentials: 'include' });
+            const data = await response.json();
+            
+            if (data.success) {
+                const stateSelect = document.getElementById('state_id');
+                stateSelect.innerHTML = '<option value="">Select State</option>';
+                
+                data.states.forEach(state => {
+                    const option = document.createElement('option');
+                    option.value = state.state_id;
+                    option.textContent = state.state_name;
+                    stateSelect.appendChild(option);
+                });
+                
+                if (selectedStateId) {
+                    stateSelect.value = selectedStateId;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading states:', error);
+        }
+    }
+
+    async function loadCities(stateId, selectedCityId = '') {
+        if (!stateId) {
+            document.getElementById('city_id').innerHTML = '<option value="">Select City</option>';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/get_cities/${stateId}`, { credentials: 'include' });
+            const data = await response.json();
+            
+            if (data.success) {
+                const citySelect = document.getElementById('city_id');
+                citySelect.innerHTML = '<option value="">Select City</option>';
+                
+                data.cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.city_id;
+                    option.textContent = city.city_name;
+                    citySelect.appendChild(option);
+                });
+                
+                if (selectedCityId) {
+                    citySelect.value = selectedCityId;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading cities:', error);
+        }
+    }
+
+    function closeDetailsModal() {
+        document.getElementById('clientDetailsModal').style.display = 'none';
+    }
+
+    async function saveClient() {
+        const clientId = document.getElementById('clientId').value;
+        const isEdit = !!clientId;
+        
+        const formData = {
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value,
+            username: document.getElementById('username').value,
+            gender: document.getElementById('gender').value,
+            dob: document.getElementById('dob').value,
+            phone_number: document.getElementById('phone_number').value,
+            pincode: document.getElementById('pincode').value,
+            state_id: document.getElementById('state_id').value || null,
+            city_id: document.getElementById('city_id').value || null
+        };
+
+        // Add admin-only fields if they exist in the DOM
+        const isAdminField = document.getElementById('is_admin');
+        const isEnabledField = document.getElementById('is_enabled');
+        if (isAdminField) formData.is_admin = parseInt(isAdminField.value);
+        if (isEnabledField) formData.is_enabled = parseInt(isEnabledField.value);
+
+        // Validation
+        if (!formData.first_name || !formData.last_name || !formData.username || !formData.password || 
+            !formData.gender || !formData.dob || !formData.phone_number || !formData.pincode) {
+            alert('Please fill all required fields');
+            return;
+        }
+
+        if (!/^\d{10}$/.test(formData.phone_number)) {
+            alert('Phone number must be 10 digits');
+            return;
+        }
+
+        if (!/^\d{6}$/.test(formData.pincode)) {
+            alert('Pincode must be 6 digits');
+            return;
+        }
+
+        try {
+            // Show loading
+            document.getElementById('saveText').style.display = 'none';
+            document.getElementById('loadingSpinner').style.display = 'inline';
+            document.getElementById('saveBtn').disabled = true;
+
+            let response;
+            if (isEdit) {
+                response = await fetch(`/api/clients/${clientId}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify(formData)
+                });
+            } else {
+                response = await fetch('/api/clients', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify(formData)
+                });
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('✅ ' + data.message);
+                closeClientForm();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ Failed to save client');
+        } finally {
+            document.getElementById('saveText').style.display = 'inline';
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('saveBtn').disabled = false;
+        }
+    }
+
+    async function viewClient(id) {
+        try {
+            const response = await fetch(`/api/clients/${id}`, {
+                credentials: 'include'
+            });
+            
+            if (response.url.includes('/login')) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                const client = data.client;
+                
+                // Format date
+                const dob = client.dob ? new Date(client.dob).toLocaleDateString() : 'N/A';
+                const created = client.created_at ? new Date(client.created_at).toLocaleString() : 'N/A';
+                
+                const content = `
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: 0 auto 15px;">
+                            ${client.first_name ? client.first_name.charAt(0) : ''}${client.last_name ? client.last_name.charAt(0) : ''}
+                        </div>
+                        <h3 style="margin: 0;">${client.name}</h3>
+                        <span style="background: rgba(102, 126, 234, 0.1); color: #667eea; padding: 5px 15px; border-radius: 20px; font-size: 14px; display: inline-block; margin-top: 10px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                            @${client.username}
+                        </span>
+                        ${client.is_admin == 1 ? '<span style="background: #edf2f7; color: #4a5568; padding: 3px 10px; border-radius: 12px; font-size: 12px; margin-left: 10px; border: 1px solid #e2e8f0;">Admin</span>' : ''}
+                    </div>
+                    
+                    <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Client ID:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.id}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>First Name:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.first_name}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Last Name:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.last_name}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Username:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.username}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Gender:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.gender || 'N/A'}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Date of Birth:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${dob}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Phone:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.phone}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Email:</strong></td><td style="border-bottom: 1px solid #f5f5f5;"><a href="mailto:${client.email}" style="color: #667eea; text-decoration: none;">${client.email}</a></td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Pincode (Legacy):</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.pincode || 'N/A'}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>State ID:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.state_id || 'N/A'}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>City ID:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">${client.city_id || 'N/A'}</td></tr>
+                            <tr><td style="padding: 8px 0; border-bottom: 1px solid #f5f5f5;"><strong>Status:</strong></td><td style="border-bottom: 1px solid #f5f5f5;">
+                                ${client.is_enabled == 1 ? 
+                                    '<span style="color: #667eea;"><i class="fas fa-check-circle"></i> Active</span>' : 
+                                    '<span style="color: #dc3545;"><i class="fas fa-ban"></i> Inactive</span>'}
+                            </td></tr>
+                            <tr><td style="padding: 8px 0;"><strong>Created At:</strong></td><td>${created}</td></tr>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-top: 30px; display: flex; gap: 10px;">
+                        <button onclick="editClient(${client.id})" class="save-btn" style="flex: 1; display:flex; align-items:center; justify-content:center; gap:5px; padding: 10px;">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button onclick="deleteClient(${client.id})" class="delete-btn" style="flex: 1; border-radius: 8px; border: none; color: white; cursor: pointer; transition: all 0.3s ease; display:flex; align-items:center; justify-content:center; gap:5px; padding: 10px;">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('clientDetailsContent').innerHTML = content;
+                document.getElementById('clientDetailsModal').style.display = 'flex';
+                
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to load client details');
+        }
+    }
+
+    async function editClient(id) {
+        try {
+            const response = await fetch(`/api/clients/${id}`, {
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                const client = data.client;
+                
+                document.getElementById('formTitle').textContent = 'Edit Client';
+                document.getElementById('formSubtitle').textContent = 'Update client profile information and credentials.';
+                document.getElementById('clientId').value = client.id;
+                document.getElementById('first_name').value = client.first_name || '';
+                document.getElementById('last_name').value = client.last_name || '';
+                document.getElementById('username').value = client.username || '';
+                document.getElementById('gender').value = client.gender || '';
+                
+                // Format date for input
+                if (client.dob) {
+                    const date = new Date(client.dob);
+                    document.getElementById('dob').value = date.toISOString().split('T')[0];
+                }
+                
+                document.getElementById('phone_number').value = client.phone || '';
+                document.getElementById('pincode').value = client.pincode || '';
+                
+                // Pre-load states and cities
+                await loadStates(client.state_id);
+                if (client.state_id) {
+                    await loadCities(client.state_id, client.city_id);
+                }
+                
+                
+                // Populate admin-only fields if they exist
+                const isAdminField = document.getElementById('is_admin');
+                const isEnabledField = document.getElementById('is_enabled');
+                if (isAdminField) isAdminField.value = client.is_admin || '0';
+                if (isEnabledField) isEnabledField.value = client.is_enabled !== undefined ? client.is_enabled : '1';
+
+                document.getElementById('saveText').textContent = 'Update Client';
+                document.getElementById('clientFormModal').style.display = 'flex';
+                closeDetailsModal();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to load client data');
+        }
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteConfirmModal').style.display = 'none';
+        document.getElementById('confirmDeleteBtn').onclick = null;
+    }
+
+    async function deleteClient(id) {
+        const row = document.getElementById(`client-row-${id}`);
+        const clientName = row ? row.querySelector('strong').textContent.trim() : `Client #${id}`;
+        
+        document.getElementById('deleteMessage').textContent = `Are you sure you want to delete "${clientName}"? This action cannot be undone.`;
+        document.getElementById('deleteConfirmModal').style.display = 'flex';
+        
+        document.getElementById('confirmDeleteBtn').onclick = async function() {
+            try {
+                // Show loading on delete button if you want, or just proceed
+                const response = await fetch(`/api/clients/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    
+                    if (row) {
+                        row.style.transition = 'all 0.3s';
+                        row.style.opacity = '0';
+                        row.style.transform = 'translateX(-50px)';
+                        
+                        setTimeout(() => {
+                            row.remove();
+                            updateClientCount();
+                        }, 300);
+                    }
+                    
+                    closeDeleteModal();
+                    closeDetailsModal();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Failed to delete client');
+            }
+        };
+    }
+
+    // ==================== UI FUNCTIONS ====================
+
+    async function resetPassword() {
+        const id = document.getElementById('clientId').value;
+        if (!id) return;
+        
+        if (!confirm('Are you sure you want to reset the password for this client? A new default password will be assigned.')) {
+            return;
+        }
+        
+        const btn = document.getElementById('resetPwdBtn');
+        const originalContent = btn.innerHTML;
+        
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+            
+            const response = await fetch(`/clients/reset-password/${id}`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('✅ ' + data.message + '\nNew Password: ' + data.new_password);
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ Failed to reset password');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+
+    function searchClients() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('#clientsTable tbody tr');
+        
+        rows.forEach(row => {
+            const name = row.cells[1].textContent.toLowerCase();
+            const email = row.cells[2].textContent.toLowerCase();
+            const phone = row.cells[3].textContent.toLowerCase();
+            
+            if (name.includes(input) || email.includes(input) || phone.includes(input)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function updateClientCount() {
+        const totalRows = document.querySelectorAll('#clientsTable tbody tr:not([style*="display: none"])').length;
+        const pageTitle = document.querySelector('.page-title');
+        pageTitle.textContent = `Clients Management (${totalRows} Clients)`;
+    }
+
+    // ==================== INITIALIZATION ====================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const formModal = document.getElementById('clientFormModal');
+            const detailsModal = document.getElementById('clientDetailsModal');
+            const deleteModal = document.getElementById('deleteConfirmModal');
+            
+            if (event.target === formModal) closeClientForm();
+            if (event.target === detailsModal) closeDetailsModal();
+            if (event.target === deleteModal) closeDeleteModal();
+        };
+    });
+</script>
+{% endblock %}

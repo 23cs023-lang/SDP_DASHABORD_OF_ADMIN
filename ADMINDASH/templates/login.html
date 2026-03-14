@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creovibe - Admin Login</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body class="no-sidebar">
+
+    <div class="login-container">
+        <h2>Creovibe Admin Login</h2>
+        
+        <!-- Error message -->
+        <div class="error" id="error-message">
+            <strong>Login Failed</strong><br>
+            <span id="error-text"></span>
+        </div>
+        
+        <!-- Session expired message -->
+        {% if request.args.get('expired') %}
+        <div class="info">
+            <strong>Session Expired</strong><br>
+            Your session has expired. Please login again.
+        </div>
+        {% endif %}
+        
+        <!-- Success logout message -->
+        {% if request.args.get('logout') %}
+        <div class="success">
+            <strong>Logged Out Successfully</strong><br>
+            You have been logged out.
+        </div>
+        {% endif %}
+        
+        <!-- Login form -->
+        <form id="loginForm">
+            <div class="input-group">
+                <input type="text" id="username" name="username" placeholder="Username" required autofocus>
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" name="password" placeholder="Password" required>
+            </div>
+            <button type="submit" id="login-btn">
+                <span id="btn-text">Login</span>
+                <span id="btn-spinner" class="loading-spinner"></span>
+            </button>
+        </form>
+        
+        <div class="demo-credentials">
+            <strong>Please login!:)</strong>
+        </div>
+        
+        <div class="login-message" id="login-status">
+            <!-- Login status will appear here -->
+        </div>
+    </div>
+    
+    <!-- Include auth manager -->
+    <script>
+        // Auth Manager Class
+        class AuthManager {
+            constructor() {
+                this.token = null;
+                this.username = null;
+            }
+            
+            getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return null;
+            }
+            
+            async login(username, password) {
+                try {
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password }),
+                        credentials: 'include'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.token = data.token;
+                        this.username = data.user.username;
+                        
+                        // Set token in cookie (already done by server)
+                        return { success: true, data };
+                    } else {
+                        return { success: false, error: data.error || 'Invalid credentials' };
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    return { success: false, error: 'Network error. Please try again.' };
+                }
+            }
+            
+            logout() {
+                fetch('/logout', { 
+                    method: 'GET',
+                    credentials: 'include'
+                }).then(() => {
+                    window.location.href = '/login?logout=true';
+                });
+            }
+            
+            async checkAuth() {
+                try {
+                    const response = await fetch('/api/auth/verify', {
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.authenticated) {
+                            this.username = data.username;
+                            return true;
+                        }
+                    }
+                    return false;
+                } catch (error) {
+                    console.error('Auth check failed:', error);
+                    return false;
+                }
+            }
+        }
+        
+        // Create global auth manager
+        window.authManager = new AuthManager();
+        
+        // Auto-check if already logged in
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isAuthenticated = await window.authManager.checkAuth();
+            
+            if (isAuthenticated) {
+                document.getElementById('login-status').innerHTML = `
+                    <div class="success" style="margin-top: 15px;">
+                        <strong>Already Logged In</strong><br>
+                        Redirecting to dashboard...
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1500);
+            }
+        });
+        
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            const loginBtn = document.getElementById('login-btn');
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            
+            // Clear previous errors
+            errorDiv.style.display = 'none';
+            errorText.textContent = '';
+            
+            // Show loading state
+            loginBtn.disabled = true;
+            btnText.textContent = 'Logging in...';
+            btnSpinner.style.display = 'inline-block';
+            
+            try {
+                const result = await window.authManager.login(username, password);
+                
+                if (result.success) {
+                    // Show success message
+                    document.getElementById('login-status').innerHTML = `
+                        <div class="success" style="margin-top: 15px;">
+                            <strong>Login Successful!</strong><br>
+                            Redirecting to dashboard...
+                        </div>
+                    `;
+                    
+                    // Redirect to dashboard after 1 second
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    // Show error
+                    errorText.textContent = result.error || 'Invalid credentials';
+                    errorDiv.style.display = 'block';
+                    
+                    // Reset button
+                    loginBtn.disabled = false;
+                    btnText.textContent = 'Login';
+                    btnSpinner.style.display = 'none';
+                    
+                    // Focus on password field
+                    document.getElementById('password').focus();
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorText.textContent = 'An unexpected error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+                
+                // Reset button
+                loginBtn.disabled = false;
+                btnText.textContent = 'Login';
+                btnSpinner.style.display = 'none';
+            }
+        });
+        
+        // Auto-focus on username field
+        document.getElementById('username').focus();
+        
+        // Clear any existing cookies on login page
+        document.cookie.split(";").forEach(function(c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+    </script>
+</body>
+</html>

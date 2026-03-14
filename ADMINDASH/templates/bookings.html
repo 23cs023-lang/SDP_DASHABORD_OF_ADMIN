@@ -1,0 +1,523 @@
+{% extends "base.html" %}
+
+{% block title %}Bookings Management | CreoVibe Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --text-dark: #2d3748;
+        --text-gray: #718096;
+        --border-color: #e2e8f0;
+        --bg-light: #f7fafc;
+    }
+
+    /* Page Header */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+    }
+
+    .page-title {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-dark);
+        margin: 0;
+    }
+
+    /* Action Buttons */
+    .btn-view {
+        background: var(--primary-gradient);
+        color: white !important;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-edit {
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea !important;
+        padding: 4px 14px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel {
+        background: white;
+        border: 2px solid #e53e3e;
+        color: #e53e3e !important;
+        padding: 4px 14px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-view:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-edit:hover { background: #667eea; color: white !important; }
+    .btn-cancel:hover { background: #e53e3e; color: white !important; }
+
+    /* Status Badges */
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-confirmed { background: #e6fffa; color: #2f855a; }
+    .status-pending { background: #fffff0; color: #b7791f; }
+    .status-cancelled { background: #fff5f5; color: #c53030; }
+    .status-completed { background: #ebf8ff; color: #2b6cb0; }
+
+    /* Table Improvements */
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        background: var(--bg-light);
+        padding: 16px 20px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    td {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 14px;
+        color: var(--text-dark);
+        font-weight: 500;
+    }
+
+    .amount-cell {
+        font-weight: 700;
+        color: #2d3748;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: white;
+        width: 100%;
+        max-width: 550px;
+        border-radius: 16px;
+        overflow: hidden;
+        animation: modalFadeUp 0.3s ease-out;
+    }
+
+    @keyframes modalFadeUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+        background: var(--primary-gradient);
+        padding: 24px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 { margin: 0; font-size: 20px; font-weight: 700; }
+
+    .modal-body {
+        padding: 24px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .detail-item { margin-bottom: 16px; }
+    .detail-label { font-size: 12px; color: var(--text-gray); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+    .detail-value { font-size: 15px; color: var(--text-dark); font-weight: 700; }
+
+    /* Forms in Modal */
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 8px; }
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: border-color 0.2s;
+    }
+    .form-control:focus { outline: none; border-color: #667eea; }
+
+    .modal-footer {
+        padding: 20px 24px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .btn-modal {
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .btn-modal-cancel { background: #f7fafc; border: 2px solid #e2e8f0; color: #4a5568; }
+    .btn-modal-save { background: var(--primary-gradient); border: none; color: white; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2 class="page-title">Bookings Management ({{ bookings|length }})</h2>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Client</th>
+                <th>Artist</th>
+                <th>Slot Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr id="booking-row-{{ booking.id }}">
+                <td>#{{ booking.id }}</td>
+                <td>{{ booking.client }}</td>
+                <td>{{ booking.artist }}</td>
+                <td>{{ booking.date }}</td>
+                <td class="amount-cell">{{ booking.amount }}</td>
+                <td>
+                    <span class="status-badge status-{{ booking.status.lower() }}">
+                        {{ booking.status }}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn-view" onclick="openViewModal({{ booking.id }})">View</button>
+                    <button class="btn-edit" onclick="openEditModal({{ booking.id }}, '{{ booking.status }}')">Edit</button>
+                    <button class="btn-cancel" onclick="openCancelModal({{ booking.id }})">Cancel</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- View Booking Modal -->
+<div class="modal-overlay" id="viewModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Booking Details</h3>
+            <span style="cursor:pointer" onclick="closeModal('viewModal')"><i class="fas fa-times"></i></span>
+        </div>
+        <div class="modal-body" id="viewModalBody">
+            <div style="text-align: center; padding: 40px;">
+                <i class="fas fa-circle-notch fa-spin" style="font-size: 24px; color: #667eea;"></i>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-modal-cancel" onclick="closeModal('viewModal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Status Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Update Booking Status</h3>
+            <span style="cursor:pointer" onclick="closeModal('editModal')"><i class="fas fa-times"></i></span>
+        </div>
+        <div class="modal-body">
+            <p style="color: var(--text-gray); font-size: 14px; margin-bottom: 24px;">
+                Update the status for Booking #<span id="editBookingId"></span>
+            </p>
+            <div class="form-group">
+                <label class="form-label">New Status</label>
+                <select class="form-control" id="statusSelect">
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-modal-cancel" onclick="closeModal('editModal')">Cancel</button>
+            <button class="btn-modal btn-modal-save" onclick="saveStatus()">Update Status</button>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Booking Modal -->
+<div class="modal-overlay" id="cancelModal">
+    <div class="modal-content">
+        <div class="modal-header" style="background: #e53e3e;">
+            <h3>Cancel Booking</h3>
+            <span style="cursor:pointer" onclick="closeModal('cancelModal')"><i class="fas fa-times"></i></span>
+        </div>
+        <div class="modal-body">
+            <div style="text-align: center; margin-bottom: 24px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #e53e3e; margin-bottom: 16px;"></i>
+                <h4 style="margin:0; font-size: 18px;">Confirm Cancellation</h4>
+                <p style="color: var(--text-gray); font-size: 14px; margin-top: 8px;">
+                    Are you sure you want to cancel Booking #<span id="cancelBookingId"></span>?
+                </p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Reason for Cancellation</label>
+                <textarea class="form-control" id="cancelReason" rows="3" placeholder="Explain why this booking is being cancelled..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal btn-modal-cancel" onclick="closeModal('cancelModal')">No, Keep It</button>
+            <button class="btn-modal btn-modal-save" style="background: #e53e3e;" onclick="confirmCancellation()">Confirm Cancellation</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    async function openViewModal(id) {
+        const modal = document.getElementById('viewModal');
+        const body = document.getElementById('viewModalBody');
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        body.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fas fa-circle-notch fa-spin" style="font-size: 24px; color: #667eea;"></i></div>';
+
+        try {
+            const response = await fetch(`/api/bookings/${id}`);
+            const data = await response.json();
+            
+            if (!data.success) throw new Error(data.error);
+            
+            const b = data.booking;
+            body.innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Booking ID</div>
+                        <div class="detail-value">#${b.Booking_ID}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value">
+                            <span class="status-badge status-${b.Booking_Status.toLowerCase()}">${b.Booking_Status}</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Client Name</div>
+                        <div class="detail-value">${b.client_name}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Client Phone</div>
+                        <div class="detail-value">${b.client_phone || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Artist Name</div>
+                        <div class="detail-value">${b.artist_name}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Category</div>
+                        <div class="detail-value">${b.category}</div>
+                    </div>
+                </div>
+                <hr style="border:0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Date</div>
+                        <div class="detail-value">${b.Slot_Date}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Type</div>
+                        <div class="detail-value">${b.Slot_type || 'Standard'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Time</div>
+                        <div class="detail-value">${b.Start_Time} - ${b.End_Time}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Booked At</div>
+                        <div class="detail-value">${b.Booked_At}</div>
+                    </div>
+                </div>
+                <hr style="border:0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+                <h4 style="margin:0 0 16px; font-size: 14px; text-transform: uppercase; color: var(--text-gray);">Payment Information</h4>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Amount</div>
+                        <div class="detail-value" style="color: #2d3748; font-size: 18px;">₹${parseFloat(b.amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Transaction ID</div>
+                        <div class="detail-value">${b.transaction_id || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Method</div>
+                        <div class="detail-value">${b.payment_method || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Payment Status</div>
+                        <div class="detail-value">${b.payment_status || 'N/A'}</div>
+                    </div>
+                </div>
+                ${b.Booking_Status === 'cancelled' ? `
+                    <div style="background: #fff5f5; padding: 16px; border-radius: 8px; margin-top: 20px; border: 1px solid #fed7d7;">
+                        <div class="detail-label" style="color: #c53030;">Cancellation Reason</div>
+                        <div class="detail-value" style="color: #c53030;">${b.cancellation_reason || 'N/A'}</div>
+                        <div style="font-size: 11px; color: #e53e3e; margin-top: 4px;">Cancelled on ${b.cancelled_at}</div>
+                    </div>
+                ` : ''}
+            `;
+        } catch (error) {
+            body.innerHTML = `<div style="text-align:center; padding: 20px; color: #e53e3e;">Failed to load booking: ${error.message}</div>`;
+        }
+    }
+
+    let currentEditingId = null;
+    function openEditModal(id, currentStatus) {
+        currentEditingId = id;
+        document.getElementById('editBookingId').textContent = id;
+        document.getElementById('statusSelect').value = currentStatus.toLowerCase();
+        document.getElementById('editModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function saveStatus() {
+        const status = document.getElementById('statusSelect').value;
+        const btn = document.querySelector('#editModal .btn-modal-save');
+        const originalText = btn.textContent;
+        
+        btn.disabled = true;
+        btn.textContent = 'Updating...';
+
+        try {
+            const response = await fetch(`/api/bookings/${currentEditingId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: status })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                btn.style.background = '#48bb78';
+                btn.textContent = 'Updated Successfully!';
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    let currentCancellingId = null;
+    function openCancelModal(id) {
+        currentCancellingId = id;
+        document.getElementById('cancelBookingId').textContent = id;
+        document.getElementById('cancelReason').value = '';
+        document.getElementById('cancelModal').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    async function confirmCancellation() {
+        const reason = document.getElementById('cancelReason').value;
+        const btn = document.querySelector('#cancelModal .btn-modal-save');
+        const originalText = btn.textContent;
+        
+        btn.disabled = true;
+        btn.textContent = 'Cancelling...';
+
+        try {
+            const response = await fetch(`/api/bookings/${currentCancellingId}/cancel`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: reason })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                btn.style.background = '#48bb78';
+                btn.textContent = 'Cancelled Successfully!';
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    // Close on backdrop click
+    window.onclick = function(event) {
+        const modals = ['viewModal', 'editModal', 'cancelModal'];
+        modals.forEach(mId => {
+            const modal = document.getElementById(mId);
+            if (event.target == modal) closeModal(mId);
+        });
+    }
+</script>
+{% endblock %}

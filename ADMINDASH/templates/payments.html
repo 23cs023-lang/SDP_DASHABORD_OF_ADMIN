@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+
+{% block title %}Payments Management | CreoVibe Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --hover-gradient: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        --bg-light: #f8fafc;
+        --text-main: #2d3748;
+        --text-muted: #718096;
+        --success-bg: #e6fffa;
+        --success-text: #2f855a;
+        --pending-bg: #fffff0;
+        --pending-text: #b7791f;
+        --failed-bg: #fff5f5;
+        --failed-text: #c53030;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .btn-gradient {
+        background: var(--primary-gradient);
+        color: white !important;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-gradient:hover {
+        background: var(--hover-gradient);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        transform: translateY(-2px);
+    }
+
+    /* Stats Cards */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .stat-label {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    /* Search Bar */
+    .search-section {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        margin-bottom: 24px;
+        display: flex;
+        gap: 15px;
+    }
+
+    .search-input-group {
+        flex: 1;
+        position: relative;
+    }
+
+    .search-input-group i {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+    }
+
+    .search-section input, .search-section select {
+        width: 100%;
+        padding: 12px 12px 12px 40px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .search-section select {
+        padding-left: 15px;
+        width: 200px;
+    }
+
+    .search-section input:focus, .search-section select:focus {
+        border-color: #667eea;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Table Styling */
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .payments-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .payments-table thead tr {
+        background: #f7f7ff;
+    }
+
+    .payments-table th {
+        padding: 16px;
+        text-align: left;
+        color: #667eea;
+        font-weight: 700;
+        font-size: 13px;
+        text-transform: uppercase;
+        border-bottom: 2px solid #edf2f7;
+    }
+
+    .payments-table td {
+        padding: 16px;
+        color: var(--text-main);
+        border-bottom: 1px solid #edf2f7;
+        font-size: 14px;
+    }
+
+    .payments-table tbody tr:hover {
+        background: #f7f7ff;
+        transition: background 0.2s ease;
+    }
+
+    /* Status Badges */
+    .badge {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: inline-block;
+    }
+
+    .badge-success { background: var(--success-bg); color: var(--success-text); }
+    .badge-pending { background: var(--pending-bg); color: var(--pending-text); }
+    .badge-failed { background: var(--failed-bg); color: var(--failed-text); }
+
+    /* Modal Styling */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-container {
+        background: white;
+        width: 100%;
+        max-width: 600px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        background: var(--primary-gradient);
+        padding: 20px 24px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+
+    .modal-close {
+        background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;
+    }
+
+    .modal-close:hover { opacity: 1; }
+
+    .modal-body { padding: 24px; }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .detail-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        font-weight: 700;
+        letter-spacing: 0.05em;
+    }
+
+    .detail-value {
+        font-size: 1rem;
+        color: var(--text-main);
+        font-weight: 600;
+    }
+
+    .modal-footer {
+        padding: 20px 24px;
+        border-top: 1px solid #edf2f7;
+        display: flex;
+        justify-content: flex-end;
+        background: #f8fafc;
+    }
+
+    .btn-close-modal {
+        padding: 10px 24px;
+        border-radius: 8px;
+        background: white;
+        border: 2px solid #e2e8f0;
+        color: #718096;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-close-modal:hover { background: #f7fafc; border-color: #d1d5db; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2 style="font-weight: 700;">Payments Management (<span id="payment-count">{{ payments|length }}</span>)</h2>
+    <div class="header-actions">
+        <button class="btn-gradient" onclick="window.print()">
+            <i class="fas fa-file-export"></i> Export Report
+        </button>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(102, 126, 234, 0.1); color: #667eea;">
+            <i class="fas fa-money-bill-wave"></i>
+        </div>
+        <div class="stat-info">
+            <span class="stat-value">{{ payments|length }}</span>
+            <span class="stat-label">Total Payments</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+            <i class="fas fa-coins"></i>
+        </div>
+        <div class="stat-info">
+            {% set total_revenue = [0.0] %}
+            {% for p in payments %}
+                {% if p.Payment_Status|lower == 'success' %}
+                    {% if total_revenue.append(total_revenue.pop() + p.Amount|float) %}{% endif %}
+                {% endif %}
+            {% endfor %}
+            <span class="stat-value">₹{{ "{:,.2f}".format(total_revenue[0]) }}</span>
+            <span class="stat-label">Total Revenue</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            {% set success_count = [0] %}
+            {% for p in payments %}
+                {% if p.Payment_Status|lower == 'success' %}
+                    {% if success_count.append(success_count.pop() + 1) %}{% endif %}
+                {% endif %}
+            {% endfor %}
+            <span class="stat-value">{{ success_count[0] }}</span>
+            <span class="stat-label">Successful</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+            {% set pending_count = [0] %}
+            {% for p in payments %}
+                {% if p.Payment_Status|lower == 'pending' %}
+                    {% if pending_count.append(pending_count.pop() + 1) %}{% endif %}
+                {% endif %}
+            {% endfor %}
+            <span class="stat-value">{{ pending_count[0] }}</span>
+            <span class="stat-label">Pending</span>
+        </div>
+    </div>
+</div>
+
+<div class="search-section">
+    <div class="search-input-group">
+        <i class="fas fa-search"></i>
+        <input type="text" id="paymentsSearch" placeholder="Search by Client, Artist or ID..." oninput="applyFilters()">
+    </div>
+    <div class="filter-group">
+        <select id="paymentStatusFilter" onchange="applyFilters()">
+            <option value="">All Status</option>
+            <option value="success">Success</option>
+            <option value="pending">Pending</option>
+            <option value="failure">Failure</option>
+        </select>
+    </div>
+    <button class="btn-gradient" onclick="applyFilters()">
+        <i class="fas fa-filter"></i> Apply Filters
+    </button>
+</div>
+
+<div class="table-container">
+    {% if payments_error %}
+    <div class="empty-state">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p><strong>SQL Error:</strong> {{ payments_error }}</p>
+    </div>
+    {% elif payments and payments|length > 0 %}
+    <table class="payments-table" id="paymentsTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Client</th>
+                <th>Artist</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in payments %}
+            <tr data-id="{{ row.Payment_ID }}" 
+                data-client="{{ row.client_name|lower }}" 
+                data-artist="{{ row.artist_name|lower }}" 
+                data-status="{{ row.Payment_Status|lower }}"
+                data-full-info='{{ row|tojson|safe }}'>
+                <td>#{{ row.Payment_ID }}</td>
+                <td><strong>{{ row.client_name }}</strong></td>
+                <td>{{ row.artist_name }}</td>
+                <td style="font-weight: 600;">₹{{ "{:,.2f}".format(row.Amount|float) }}</td>
+                <td>
+                    {% set status = row.Payment_Status|lower %}
+                    <span class="badge {% if status == 'success' %}badge-success{% elif status == 'pending' %}badge-pending{% else %}badge-failed{% endif %}">
+                        {{ status|upper }}
+                    </span>
+                </td>
+                <td>{{ row.Paid_at if row.Paid_at else '-' }}</td>
+                <td style="white-space: nowrap;">
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-gradient" style="padding: 6px 14px; font-size: 13px; border-radius: 6px;" onclick='showPaymentDetails(this)'>
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <a href="/admin/payments/receipt/{{ row.Payment_ID }}" class="btn-gradient" style="padding: 6px 14px; font-size: 13px; border-radius: 6px; text-decoration: none;">
+                            <i class="fas fa-file-invoice"></i> Receipt
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-credit-card"></i>
+        <h3>No payments yet</h3>
+        <p>There are no payment records available at the moment.</p>
+    </div>
+    {% endif %}
+</div>
+
+
+
+<!-- Details Modal -->
+<div id="paymentDetailsModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3>Payment Details</h3>
+            <button class="modal-close" onclick="closePaymentModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Payment ID</span>
+                    <span class="detail-value" id="detail-id">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Status</span>
+                    <span id="detail-status-badge">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Client Name</span>
+                    <span class="detail-value" id="detail-client">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Artist Name</span>
+                    <span class="detail-value" id="detail-artist">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Amount</span>
+                    <span class="detail-value" style="color: #667eea; font-size: 1.25rem;" id="detail-amount">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Date</span>
+                    <span class="detail-value" id="detail-date">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Payment Method</span>
+                    <span class="detail-value" id="detail-method">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Transaction ID</span>
+                    <span class="detail-value" id="detail-transaction" style="font-family: monospace;">-</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-close-modal" onclick="closePaymentModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applyFilters() {
+    const searchValue = document.getElementById('paymentsSearch').value.toLowerCase().trim();
+    const paymentFilter = document.getElementById('paymentStatusFilter').value;
+
+    const rows = document.querySelectorAll('#paymentsTable tbody tr');
+    let visibleCount = 0;
+
+    rows.forEach((row) => {
+        const id = row.dataset.id || '';
+        const artist = row.dataset.artist || '';
+        const client = row.dataset.client || '';
+        const paymentStatus = row.dataset.status || '';
+        
+        const matchesSearch = !searchValue || 
+                             id.includes(searchValue) || 
+                             artist.includes(searchValue) || 
+                             client.includes(searchValue);
+        
+        const matchesStatus = !paymentFilter || paymentStatus === paymentFilter;
+        
+        const visible = matchesSearch && matchesStatus;
+        row.style.display = visible ? '' : 'none';
+        if (visible) visibleCount++;
+    });
+
+    const countSpan = document.getElementById('payment-count');
+    if (countSpan) countSpan.textContent = visibleCount;
+}
+
+function showPaymentDetails(button) {
+    const row = button.closest('tr');
+    if (!row) return;
+    
+    try {
+        const info = JSON.parse(row.dataset.fullInfo);
+        
+        document.getElementById('detail-id').textContent = `#${info.Payment_ID}`;
+        document.getElementById('detail-client').textContent = info.client_name;
+        document.getElementById('detail-artist').textContent = info.artist_name;
+        document.getElementById('detail-amount').textContent = `₹${Number(info.Amount).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+        document.getElementById('detail-date').textContent = info.Paid_at || 'Not yet paid';
+        document.getElementById('detail-method').textContent = info.Payment_Method || 'Standard';
+        document.getElementById('detail-transaction').textContent = info.Transaction_ID || 'N/A';
+        
+        // Status Badge in Modal
+        const status = info.Payment_Status.toLowerCase();
+        const badge = document.getElementById('detail-status-badge');
+        badge.className = `badge ${status === 'success' ? 'badge-success' : (status === 'pending' ? 'badge-pending' : 'badge-failed')}`;
+        badge.textContent = status.toUpperCase();
+        
+        document.getElementById('paymentDetailsModal').style.display = 'flex';
+    } catch (e) {
+        console.error('Error parsing payment info:', e);
+    }
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentDetailsModal').style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal background click to close
+    const modal = document.getElementById('paymentDetailsModal');
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) closePaymentModal();
+    });
+});
+</script>
+{% endblock %}

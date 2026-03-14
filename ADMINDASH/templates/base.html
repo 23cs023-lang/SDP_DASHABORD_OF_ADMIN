@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CreoVibe Admin{% endblock %}</title>
+    <!-- We will link the existing CSS but override the layout tightly -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+    
+    <style>
+        /* BASE LAYOUT OVERRIDES to ensure strict compliance with user design */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #F3F4F6 !important;
+        }
+        
+        /* SIDEBAR (LEFT): Purple/indigo gradient */
+        .sidebar {
+            width: 240px !important;
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            height: 100vh !important;
+            overflow-y: auto !important;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            z-index: 1000 !important;
+            color: #ffffff;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* Custom scrollbar for sidebar */
+        .sidebar::-webkit-scrollbar { 
+            width: 5px; 
+        }
+        .sidebar::-webkit-scrollbar-track { 
+            background: rgba(255,255,255,0.1); 
+        }
+        .sidebar::-webkit-scrollbar-thumb { 
+            background: rgba(255,255,255,0.4); 
+            border-radius: 10px; 
+        }
+        
+        /* Logo "Creovibe Admin" at top with palette icon, WHITE text */
+        .sidebar h2 {
+            flex-shrink: 0;
+            margin: 0;
+            padding: 24px 20px;
+            color: #ffffff !important;
+            font-size: 22px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .sidebar h2 i {
+            margin-right: 12px;
+            font-size: 24px;
+        }
+        
+        .sidebar ul {
+            flex: 1;
+            margin: 0;
+            padding: 15px 0;
+            list-style: none;
+        }
+        
+        /* Nav links: white text, icons on left */
+        .sidebar ul li a {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.9) !important;
+            text-decoration: none;
+            font-size: 15px;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        .sidebar ul li a i {
+            width: 24px;
+            text-align: center;
+            margin-right: 12px;
+            font-size: 18px;
+        }
+        
+        /* Active page has a highlighted purple block */
+        .sidebar ul li a:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            color: #ffffff !important;
+        }
+        .sidebar ul li a.active {
+            background: rgba(255, 255, 255, 0.2) !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            border-left: 4px solid #ffffff;
+        }
+
+        /* TOP HEADER BAR: Purple-to-pink horizontal gradient */
+        .top-header-bar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 240px !important;
+            right: 0 !important;
+            height: 60px !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 999 !important;
+            box-sizing: border-box;
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Left side: "CrèoVibe" text in white */
+        .top-header-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+        
+        /* Right side actions */
+        .global-header-actions {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        /* Home & Bell Icons */
+        .global-header-actions .icon-btn {
+            position: relative;
+            color: #ffffff;
+            font-size: 20px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: background 0.3s;
+        }
+        
+        .global-header-actions .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Notification badge on bell */
+        .global-header-actions .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #EF4444; /* Red badge */
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            border: 2px solid #E83E8C; /* match pink background */
+        }
+        
+        /* Professional Logout button */
+        .global-header-actions .logout-btn {
+            background: white !important;
+            color: #667eea !important;
+            border: 2px solid white !important;
+            padding: 8px 18px !important;
+            border-radius: 8px !important;
+            cursor: pointer !important;
+            font-weight: 600 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            font-size: 14px !important;
+            transition: all 0.3s ease !important;
+            text-decoration: none !important;
+        }
+        .global-header-actions .logout-btn:hover {
+            background: transparent !important;
+            color: white !important;
+            border: 2px solid white !important;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3) !important;
+            transform: translateY(-2px) !important;
+        }
+
+        /* MAIN CONTENT AREA */
+        /* Light gray/white background, loads pages inside */
+        .main-content {
+            margin-left: 240px !important;
+            margin-top: 60px !important;
+            min-height: calc(100vh - 60px) !important;
+            padding: 24px !important;
+            background: #f0f2f5 !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* UNIVERSAL BUTTON STANDARD */
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 8px 16px !important;
+            cursor: pointer !important;
+            font-weight: 500 !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn-primary:hover {
+            opacity: 0.9 !important;
+            transform: translateY(-1px) !important;
+        }
+        .btn-danger {
+            background: #e53e3e !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 8px !important;
+            padding: 8px 16px !important;
+            cursor: pointer !important;
+            font-weight: 500 !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .btn-danger:hover {
+            opacity: 0.9 !important;
+            transform: translateY(-1px) !important;
+        }
+        
+        /* Utility styles inherited across pages */
+        .page-header {
+            margin-bottom: 24px;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+        }
+        .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+
+        /* FIX: Global Typography & Color Consistency */
+        h1, h2, .page-title {
+            color: #2d3748 !important;
+            font-weight: 700 !important;
+        }
+
+        /* Replace literal black with theme grays */
+        .text-black { color: #2d3748 !important; }
+        .bg-black { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; }
+        .border-black { border-color: #667eea !important; }
+
+    </style>
+</head>
+<body>
+    <!-- SIDEBAR (LEFT) -->
+    <div class="sidebar">
+        <h2><i class="fas fa-palette"></i> Creovibe Admin</h2>
+        <ul>
+            <li><a href="/dashboard" {% if request.path == '/dashboard' %}class="active"{% endif %}><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="/artists" {% if request.path == '/artists' %}class="active"{% endif %}><i class="fas fa-users"></i> Artists</a></li>
+            <li><a href="/clients" {% if request.path == '/clients' %}class="active"{% endif %}><i class="fas fa-user"></i> Clients</a></li>
+            <li><a href="/bookings" {% if request.path == '/bookings' %}class="active"{% endif %}><i class="fas fa-calendar-check"></i> Bookings</a></li>
+            <li><a href="/notifications" {% if request.path == '/notifications' %}class="active"{% endif %}><i class="fas fa-bell"></i> Notifications</a></li>
+            <li><a href="/feedback" {% if request.path == '/feedback' %}class="active"{% endif %}><i class="fas fa-comment"></i> Feedback</a></li>
+            <li><a href="/verification" {% if request.path == '/verification' %}class="active"{% endif %}><i class="fas fa-user-check"></i> Verification</a></li>
+            <li><a href="/admin/categories" {% if request.path == '/admin/categories' %}class="active"{% endif %}><i class="fas fa-tags"></i> Categories</a></li>
+            <li><a href="/admin/payments" {% if request.path == '/admin/payments' %}class="active"{% endif %}><i class="fas fa-credit-card"></i> Payments</a></li>
+            <li><a href="/admin/subscription-plans" {% if request.path == '/admin/subscription-plans' %}class="active"{% endif %}><i class="fas fa-star"></i> Subscription Plans</a></li>
+            <li><a href="/admin/calendar" {% if request.path == '/admin/calendar' %}class="active"{% endif %}><i class="fas fa-calendar"></i> Admin Calendar</a></li>
+        </ul>
+    </div>
+
+    <!-- TOP HEADER BAR -->
+    <div class="top-header-bar">
+        <!-- Left side -->
+        <h1 class="top-header-title" style="color: white !important;">CrèoVibe</h1>
+        
+        <!-- Right side -->
+        <div class="global-header-actions">
+            <!-- Home icon -->
+            <a href="/dashboard" class="icon-btn" title="Dashboard">
+                <i class="fas fa-home"></i>
+            </a>
+            <!-- Bell icon -->
+            <a href="/notifications" class="icon-btn" title="Notifications">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">{% if notification_count is defined and notification_count > 0 %}{{ notification_count }}{% else %}0{% endif %}</span>
+            </a>
+            <!-- Professional Logout button -->
+            <a href="/logout" class="logout-btn" onclick="return confirm('Are you sure you want to logout?');">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

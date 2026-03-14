@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Calendar | CreoVibe Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_calendar.css') }}">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<style>
+    /* Booking Details Modal Styles */
+    .admin-calendar-modal {
+        background: white !important;
+        border-radius: 12px !important;
+        padding: 24px !important;
+        max-width: 700px !important;
+        width: 90% !important;
+        border-top: 4px solid #6c63ff !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+        position: relative !important;
+        border: none;
+    }
+
+    .admin-calendar-modal h3 {
+        font-size: 22px !important;
+        font-weight: 600 !important;
+        color: #3b1f8c !important;
+        margin-bottom: 16px !important;
+        margin-top: 0 !important;
+    }
+
+    .detail-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 15px !important;
+        margin-bottom: 24px !important;
+    }
+
+    .detail-grid div {
+        margin-bottom: 12px !important;
+        font-size: 15px !important;
+    }
+
+    .detail-grid strong {
+        color: #6c63ff !important;
+        font-weight: 700 !important;
+        margin-right: 8px !important;
+    }
+
+    .detail-grid span {
+        color: #333 !important;
+    }
+
+    /* Status Badge Styles */
+    .status-badge {
+        padding: 4px 12px !important;
+        border-radius: 20px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        display: inline-block;
+    }
+
+    .status-confirmed {
+        background: #d4edda !important;
+        color: #155724 !important;
+    }
+
+    .status-pending {
+        background: #fff3cd !important;
+        color: #856404 !important;
+    }
+
+    .status-cancelled {
+        background: #f8d7da !important;
+        color: #721c24 !important;
+    }
+
+    /* Form Styles */
+    .admin-calendar-modal .form-group label {
+        display: block !important;
+        font-weight: 700 !important;
+        color: #3b1f8c !important;
+        margin-bottom: 8px !important;
+    }
+
+    .admin-calendar-modal textarea {
+        width: 100% !important;
+        border: 1px solid #c0b8f0 !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
+        font-size: 14px !important;
+        box-sizing: border-box !important;
+        transition: all 0.3s !important;
+        background: white !important;
+    }
+
+    .admin-calendar-modal textarea:focus {
+        outline: none !important;
+        border-color: #6c63ff !important;
+        box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.1) !important;
+    }
+
+    /* Button Styles */
+    .form-actions {
+        display: flex !important;
+        gap: 12px !important;
+        margin-top: 24px !important;
+    }
+
+    .form-actions .action-btn {
+        padding: 10px 20px !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        cursor: pointer !important;
+        transition: all 0.3s !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        font-size: 14px !important;
+    }
+
+    .form-actions .action-btn.view-btn {
+        background: #6c63ff !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    .form-actions .action-btn.view-btn:hover {
+        background: #5a52e0 !important;
+    }
+
+    .form-actions .action-btn.edit-btn {
+        background: white !important;
+        color: #6c63ff !important;
+        border: 2px solid #6c63ff !important;
+    }
+
+    .form-actions .action-btn.edit-btn:hover {
+        background: #f8f7ff !important;
+        border-color: #5a52e0 !important;
+        color: #5a52e0 !important;
+    }
+
+    .form-actions .action-btn.cancel-btn {
+        background: white !important;
+        color: #666 !important;
+        border: 2px solid #ccc !important;
+    }
+
+    .form-actions .action-btn.cancel-btn:hover {
+        background: #f5f5f5 !important;
+        border-color: #bbb !important;
+        color: #333 !important;
+    }
+
+    /* Modal Close Cross */
+    .admin-calendar-modal .close-btn {
+        position: absolute !important;
+        top: 15px !important;
+        right: 20px !important;
+        color: #999 !important;
+        font-size: 24px !important;
+        cursor: pointer !important;
+        transition: color 0.3s !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    .admin-calendar-modal .close-btn:hover {
+        color: #333 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Calendar Analytics</h2>
+</div>
+
+<div class="calendar-legend">
+    <span class="legend-item"><span class="legend-dot confirmed"></span>Confirmed</span>
+    <span class="legend-item"><span class="legend-dot pending"></span>Pending</span>
+    <span class="legend-item"><span class="legend-dot cancelled"></span>Cancelled</span>
+    <span class="legend-item"><span class="legend-dot completed"></span>Completed</span>
+</div>
+
+<div class="table-container">
+    <div id="adminCalendar"></div>
+</div>
+
+<div id="eventModal" class="modal">
+    <div class="modal-content admin-calendar-modal">
+        <span class="close-btn" onclick="closeEventModal()">&times;</span>
+        <h3>Booking Details</h3>
+        <div class="detail-grid">
+            <div><strong>Artist:</strong> <span id="modalArtist"></span></div>
+            <div><strong>Client:</strong> <span id="modalClient"></span></div>
+            <div><strong>Date:</strong> <span id="modalDate"></span></div>
+            <div><strong>Time:</strong> <span id="modalTime"></span></div>
+            <div><strong>Status:</strong> <span id="modalStatus"></span></div>
+        </div>
+        <div class="form-group">
+            <label for="adminMessage">Message / Request to Artist</label>
+            <textarea id="adminMessage" rows="4" placeholder="Write your request for the artist..."></textarea>
+        </div>
+        <div class="form-actions">
+            <button class="action-btn view-btn" type="button" onclick="sendAdminRequest('message')">
+                <i class="fas fa-paper-plane"></i> Send Message
+            </button>
+            <button class="action-btn edit-btn" type="button" onclick="sendAdminRequest('reschedule')">
+                <i class="fas fa-calendar-day"></i> Request Reschedule
+            </button>
+            <button class="action-btn cancel-btn" type="button" onclick="closeEventModal()">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+let selectedBookingId = null;
+let selectedEvent = null;
+
+async function loadCalendarEvents() {
+    const response = await fetch('/api/admin/calendar/events', { credentials: 'include' });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to load events');
+    }
+    return data.events;
+}
+
+function openEventModal(eventInfo) {
+    selectedEvent = eventInfo.event;
+    selectedBookingId = eventInfo.event.id;
+    const props = eventInfo.event.extendedProps || {};
+
+    const start = eventInfo.event.start;
+    const end = eventInfo.event.end;
+    const dateText = start ? start.toLocaleDateString() : '-';
+    const timeText = start && end ? `${start.toLocaleTimeString()} - ${end.toLocaleTimeString()}` : '-';
+
+    document.getElementById('modalArtist').textContent = props.artist_name || '-';
+    document.getElementById('modalClient').textContent = props.client_name || '-';
+    document.getElementById('modalDate').textContent = dateText;
+    document.getElementById('modalTime').textContent = timeText;
+    const statusEl = document.getElementById('modalStatus');
+    const statusText = (props.booking_status || '').toLowerCase();
+    statusEl.textContent = props.booking_status || '-';
+    
+    // Apply styling classes to the status element
+    statusEl.className = 'status-badge';
+    if (statusText === 'confirmed') statusEl.classList.add('status-confirmed');
+    else if (statusText === 'pending') statusEl.classList.add('status-pending');
+    else if (statusText === 'cancelled') statusEl.classList.add('status-cancelled');
+
+    document.getElementById('adminMessage').value = '';
+    document.getElementById('eventModal').style.display = 'flex';
+}
+
+function closeEventModal() {
+    document.getElementById('eventModal').style.display = 'none';
+    selectedBookingId = null;
+    selectedEvent = null;
+}
+
+async function sendAdminRequest(requestType) {
+    const message = document.getElementById('adminMessage').value.trim();
+    if (!selectedBookingId) {
+        alert('No booking selected.');
+        return;
+    }
+    if (!message) {
+        alert('Please enter a message.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/calendar/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                booking_id: Number(selectedBookingId),
+                request_type: requestType,
+                message: message
+            })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            alert('Error: ' + (data.error || 'Unable to send request'));
+            return;
+        }
+        alert(data.message);
+        if (selectedEvent && data.booking_status) {
+            selectedEvent.setExtendedProp('booking_status', data.booking_status);
+        }
+        closeEventModal();
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
+    const calendarEl = document.getElementById('adminCalendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        height: 'auto',
+        editable: false,
+        eventStartEditable: false,
+        eventDurationEditable: false,
+        eventClick: openEventModal,
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: 'short' },
+        events: []
+    });
+
+    try {
+        const events = await loadCalendarEvents();
+        calendar.addEventSource(events);
+    } catch (error) {
+        alert('Failed to load calendar events: ' + error.message);
+    }
+    calendar.render();
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('eventModal');
+        if (event.target === modal) {
+            closeEventModal();
+        }
+    };
+});
+</script>
+{% endblock %}
+

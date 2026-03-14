@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback Management | CreoVibe Admin{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --text-dark: #2d3748;
+        --text-gray: #718096;
+        --border-color: #e2e8f0;
+        --star-gold: #f6ad55;
+        --star-gray: #e2e8f0;
+        --bg-light: #f7fafc;
+    }
+
+    .page-container {
+        padding: 0;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .header-section h2 {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-dark);
+        margin: 0;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-gray);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--text-dark);
+    }
+
+    /* Feedback Cards */
+    .feedback-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .feedback-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+    }
+
+    .feedback-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .names-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .names-row .arrow {
+        color: var(--text-gray);
+        font-size: 14px;
+    }
+
+    .status-badge {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 4px 12px;
+        border-radius: 20px;
+        letter-spacing: 0.05em;
+    }
+
+    .status-confirmed {
+        background: #e6fffa;
+        color: #2f855a;
+    }
+
+    .status-pending {
+        background: #fffff0;
+        color: #b7791f;
+    }
+
+    .rating-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .stars {
+        color: var(--star-gold);
+        font-size: 18px;
+        display: flex;
+        gap: 2px;
+    }
+
+    .star-empty {
+        color: var(--star-gray);
+    }
+
+    .date-text {
+        color: var(--text-gray);
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .comments-text {
+        font-size: 15px;
+        color: #4a5568;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        font-style: italic;
+    }
+
+    .slot-info {
+        background: var(--bg-light);
+        padding: 12px 16px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 13px;
+        color: var(--text-gray);
+        font-weight: 600;
+    }
+
+    .slot-info i {
+        color: #667eea;
+        width: 16px;
+    }
+
+    .btn-remove {
+        position: absolute;
+        bottom: 24px;
+        right: 24px;
+        background: white;
+        border: 2px solid #e53e3e;
+        color: #e53e3e;
+        padding: 6px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .btn-remove:hover {
+        background: #e53e3e;
+        color: white;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+        justify-content: center;
+        align-items: center;
+    }
+
+    .confirm-modal {
+        background: white;
+        width: 100%;
+        max-width: 400px;
+        border-radius: 16px;
+        overflow: hidden;
+        animation: modalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modalScale {
+        from { transform: scale(0.8); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+        background: var(--primary-gradient);
+        padding: 20px;
+        color: white;
+        text-align: center;
+    }
+
+    .modal-header i {
+        font-size: 40px;
+        margin-bottom: 12px;
+    }
+
+    .modal-body {
+        padding: 24px;
+        text-align: center;
+    }
+
+    .modal-body h3 {
+        margin: 0 0 12px;
+        color: var(--text-dark);
+    }
+
+    .modal-body p {
+        color: var(--text-gray);
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .modal-footer {
+        padding: 20px;
+        display: flex;
+        gap: 12px;
+    }
+
+    .modal-btn {
+        flex: 1;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel {
+        background: white;
+        border: 2px solid var(--border-color);
+        color: var(--text-gray);
+    }
+
+    .btn-confirm {
+        background: #e53e3e;
+        color: white;
+    }
+
+    .btn-confirm:hover {
+        background: #c53030;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+
+    .empty-state i {
+        font-size: 64px;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 24px;
+    }
+</style>
+
+<div class="page-container">
+    <div class="header-section">
+        <h2>Feedback Management ({{ feedback_count }})</h2>
+    </div>
+
+    {# Stats Calculation #}
+    {% set total_reviews = feedbacks|length %}
+    {% set total_rating = namespace(value=0) %}
+    {% set five_stars = namespace(value=0) %}
+    {% for f in feedbacks %}
+        {% set total_rating.value = total_rating.value + f.Rating|float %}
+        {% if f.Rating|int == 5 %}{% set five_stars.value = five_stars.value + 1 %}{% endif %}
+    {% endfor %}
+    {% set avg_rating = (total_rating.value / total_reviews)|round(1) if total_reviews > 0 else 0 %}
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-label">Total Reviews</span>
+            <span class="stat-value">{{ total_reviews }}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Average Rating</span>
+            <span class="stat-value">{{ avg_rating }} <span style="font-size: 16px; color: var(--star-gold);">★</span></span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">5 Star Ratings</span>
+            <span class="stat-value">{{ five_stars.value }}</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">This Month</span>
+            <span class="stat-value">{{ feedbacks|length }}</span> {# Placeholder as actual monthly filter is tricky in pure Jinja #}
+        </div>
+    </div>
+
+    {% if feedbacks and feedbacks|length > 0 %}
+    <div class="feedback-list">
+        {% for row in feedbacks %}
+        <div class="feedback-card" id="feedback-card-{{ row.Feedback_ID }}">
+            <div class="card-header">
+                <div class="names-row">
+                    <span>{{ row.Client_Name }}</span>
+                    <i class="fas fa-arrow-right arrow"></i>
+                    <span>{{ row.Artist_Name }}</span>
+                </div>
+                <span class="status-badge status-{{ (row.Booking_Status or 'pending')|lower }}">
+                    {{ row.Booking_Status or 'Confirmed' }}
+                </span>
+            </div>
+
+            <div class="rating-row">
+                <div class="stars">
+                    {% for i in range(5) %}
+                        {% if i < row.Rating|int %}
+                            <i class="fas fa-star"></i>
+                        {% else %}
+                            <i class="fas fa-star star-empty"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <span class="date-text">{{ row.Feedback_Created_Date }}</span>
+            </div>
+
+            <div class="comments-text">
+                "{{ row.Comments }}"
+            </div>
+
+            <div class="slot-info">
+                <span><i class="fas fa-calendar-alt"></i> Slot: {{ row.Slot_Date }}</span>
+                <span><i class="fas fa-clock"></i> {{ row.Start_Time }} - {{ row.End_Time }}</span>
+            </div>
+
+            <button class="btn-remove" onclick="requestDelete({{ row.Feedback_ID }})">
+                <i class="fas fa-trash"></i> Remove
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-comments"></i>
+        <h3 style="color: var(--text-dark); margin-bottom: 12px;">No Feedback Yet</h3>
+        <p style="color: var(--text-gray);">When clients leave reviews, they will appear here as cards.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="confirm-modal">
+        <div class="modal-header">
+            <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="modal-body">
+            <h3>Remove Feedback?</h3>
+            <p>Are you sure you want to permanently delete this review? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+            <button class="modal-btn btn-confirm" id="confirmDeleteBtn">Delete Now</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let pendingDeleteId = null;
+
+function requestDelete(feedbackId) {
+    pendingDeleteId = feedbackId;
+    const modal = document.getElementById('confirmModal');
+    modal.style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('confirmModal');
+    modal.style.display = 'none';
+    pendingDeleteId = null;
+}
+
+document.getElementById('confirmDeleteBtn').onclick = async function() {
+    if (!pendingDeleteId) return;
+    
+    const feedbackId = pendingDeleteId;
+    closeDeleteModal();
+
+    try {
+        const response = await fetch(`/api/admin/feedback/${feedbackId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Unable to remove feedback');
+        }
+
+        const card = document.getElementById(`feedback-card-${feedbackId}`);
+        if (card) {
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            card.style.transition = 'all 0.4s ease';
+            setTimeout(() => {
+                card.remove();
+                if (document.querySelectorAll('.feedback-card').length === 0) {
+                    location.reload(); // Refresh to show empty state
+                }
+            }, 400);
+        }
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+    }
+};
+
+// Close modal on backdrop click
+window.onclick = function(event) {
+    const modal = document.getElementById('confirmModal');
+    if (event.target == modal) {
+        closeDeleteModal();
+    }
+}
+</script>
+{% endblock %}

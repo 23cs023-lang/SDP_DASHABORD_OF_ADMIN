@@ -1,0 +1,616 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - Creovibe{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notifications.css') }}">
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --hover-gradient: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        --danger-color: #e53e3e;
+        --danger-hover: #c53030;
+        --bg-light: #f7fafc;
+        --text-main: #2d3748;
+        --text-muted: #718096;
+        --border-color: #e2e8f0;
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .page-header h2 {
+        font-weight: 700;
+        color: var(--text-main);
+        font-size: 24px;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-gradient {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: var(--transition);
+        text-decoration: none;
+    }
+
+    .btn-gradient:hover {
+        background: var(--hover-gradient);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        transform: translateY(-2px);
+    }
+
+    /* Filter Tabs */
+    .filter-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .tab-btn {
+        background: white;
+        border: 1px solid var(--primary-gradient); /* Uses first color as fallback or just var */
+        border: 1px solid #667eea;
+        color: #667eea;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: var(--transition);
+        white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+        background: #f0f0ff;
+    }
+
+    .tab-btn.active {
+        background: var(--primary-gradient);
+        color: white;
+        border: none;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Notification Cards */
+    .notifications-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .notification-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        transition: var(--transition);
+        position: relative;
+        border: 1px solid transparent;
+    }
+
+    .notification-card:hover {
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .notification-card.unread {
+        border-left: 4px solid #667eea;
+    }
+
+    .notification-card.read {
+        background: #fafafa;
+    }
+
+    .card-main {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    .card-icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .card-content {
+        flex: 1;
+    }
+
+    .card-title {
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0 0 4px 0;
+        font-size: 15px;
+        display: block;
+    }
+
+    .card-message {
+        color: var(--text-muted);
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+        display: block;
+    }
+
+    .card-date {
+        position: absolute;
+        top: 20px;
+        right: 24px;
+        font-size: 13px;
+        color: #a0aec0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .card-footer-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .action-btn-labeled {
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .mark-read-btn {
+        background: var(--primary-gradient);
+    }
+
+    .mark-read-btn:hover {
+        background: var(--hover-gradient);
+        transform: scale(1.02);
+    }
+
+    .delete-card-btn {
+        background: var(--danger-color);
+    }
+
+    .delete-card-btn:hover {
+        background: var(--danger-hover);
+        transform: scale(1.02);
+    }
+
+    /* Modal Styling */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 550px;
+        overflow: hidden;
+        animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from { transform: translateY(-30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        background: var(--primary-gradient);
+        padding: 20px 25px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-weight: bold;
+        font-size: 18px;
+    }
+
+    .modal-header .close-modal {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        opacity: 0.8;
+        transition: var(--transition);
+    }
+
+    .modal-header .close-modal:hover {
+        opacity: 1;
+        transform: rotate(90deg);
+    }
+
+    .modal-body {
+        padding: 25px;
+    }
+
+    .modal-footer {
+        padding: 15px 25px;
+        background: #f8fafc;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .btn-outline {
+        background: white;
+        border: 2px solid #667eea;
+        color: #667eea;
+        padding: 8px 18px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .btn-outline:hover {
+        background: #f0f0ff;
+    }
+
+    /* Form Overrides */
+    .admin-form .form-group {
+        margin-bottom: 15px;
+    }
+
+    .admin-form label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 14px;
+    }
+
+    .admin-form input, .admin-form select, .admin-form textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: var(--transition);
+    }
+
+    .admin-form input:focus, .admin-form select:focus, .admin-form textarea:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 12px;
+        color: var(--text-muted);
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Notifications Management (<span id="notif-count">{{ notification_count if notification_count else 0 }}</span> total)</h2>
+    <div class="header-actions">
+        <button class="btn-gradient" onclick="markAllAsRead()">
+            <i class="fas fa-check-double"></i> Mark All as Read
+        </button>
+        <button class="btn-gradient" onclick="showNotificationForm()">
+            <i class="fas fa-paper-plane"></i> Send Notification
+        </button>
+    </div>
+</div>
+
+<div class="filter-tabs">
+    <button class="tab-btn active" onclick="filterNotifications(this, 'all')">All</button>
+    <button class="tab-btn" onclick="filterNotifications(this, 'unread')">Unread</button>
+    <button class="tab-btn" onclick="filterNotifications(this, 'system')">System</button>
+    <button class="tab-btn" onclick="filterNotifications(this, 'user')">User</button>
+</div>
+
+<div class="notifications-list" id="notifications-container">
+    {% for notification in notifications %}
+    <div class="notification-card {{ notification.type }} {{ 'unread' if loop.index <= 2 else 'read' }}" data-id="{{ loop.index }}" data-type="{{ notification.type }}">
+        <div class="card-date">
+            <i class="far fa-clock"></i> {{ notification.date.strftime('%b %d, %Y') if notification.date else 'Recently' }}
+        </div>
+        
+        <div class="card-main">
+            <div class="card-icon-circle">
+                <i class="fas fa-{{ 'bullhorn' if notification.type == 'announcement' else ('bell' if notification.type == 'system' else 'user') }}"></i>
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">{{ notification.title }}</h3>
+                <p class="card-message">{{ notification.message }}</p>
+            </div>
+        </div>
+
+        <div class="card-footer-actions">
+            {% if loop.index <= 2 %}
+            <button class="action-btn-labeled mark-read-btn" onclick="markAsRead(this, {{ loop.index }})">
+                <i class="fas fa-check"></i> Read
+            </button>
+            {% endif %}
+            <button class="action-btn-labeled delete-card-btn" onclick="deleteNotification(this, {{ loop.index }})">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% if notifications|length == 0 %}
+    <div class="empty-state">
+        <i class="far fa-bell-slash"></i>
+        <h3>No notifications</h3>
+        <p>You're all caught up! There are no notifications to display.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Send Notification Modal -->
+<div id="notificationFormModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Send New Notification</h3>
+            <button class="close-modal" onclick="closeNotificationForm()">&times;</button>
+        </div>
+        
+        <form id="notificationForm" class="admin-form" onsubmit="event.preventDefault(); sendNotification();">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Recipients *</label>
+                    <select id="recipient_type" required onchange="toggleSpecificUser()">
+                        <option value="all">All Users</option>
+                        <option value="artists">All Artists</option>
+                        <option value="clients">All Clients</option>
+                        <option value="specific">Specific User</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="specific_user_group" style="display: none;">
+                    <label>User ID or Email *</label>
+                    <input type="text" id="specific_user" placeholder="Enter ID or Email">
+                </div>
+
+                <div class="form-group">
+                    <label>Notification Type *</label>
+                    <select id="notif_type" required>
+                        <option value="info">Information</option>
+                        <option value="alert">Alert/Warning</option>
+                        <option value="success">Success</option>
+                        <option value="system">System Update</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input type="text" id="notif_title" required placeholder="Notification Subject">
+                </div>
+
+                <div class="form-group">
+                    <label>Message *</label>
+                    <textarea id="notif_message" rows="4" required placeholder="Enter notification content..."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-outline" onclick="closeNotificationForm()">Cancel</button>
+                <button type="submit" class="btn-gradient" id="sendBtn">
+                    <span id="sendText"><i class="fas fa-paper-plane"></i> Send Notification</span>
+                    <span id="loadingSpinner" style="display: none;"><i class="fas fa-spinner fa-spin"></i> Sending...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showNotificationForm() {
+        document.getElementById('notificationFormModal').style.display = 'flex';
+    }
+
+    function closeNotificationForm() {
+        document.getElementById('notificationFormModal').style.display = 'none';
+        document.getElementById('notificationForm').reset();
+        toggleSpecificUser(); 
+    }
+
+    function toggleSpecificUser() {
+        const type = document.getElementById('recipient_type').value;
+        const group = document.getElementById('specific_user_group');
+        const input = document.getElementById('specific_user');
+        
+        if (group && input) {
+            if (type === 'specific') {
+                group.style.display = 'block';
+                input.required = true;
+            } else {
+                group.style.display = 'none';
+                input.required = false;
+            }
+        }
+    }
+
+    async function sendNotification() {
+        const title = document.getElementById('notif_title').value;
+        const message = document.getElementById('notif_message').value;
+        const type = document.getElementById('notif_type').value;
+        const recipientType = document.getElementById('recipient_type').value;
+        const specificUser = document.getElementById('specific_user').value;
+
+        if (!title || !message) {
+            alert('Please fill in both title and message.');
+            return;
+        }
+
+        const payload = {
+            title: title,
+            message: message,
+            type: type,
+            recipient_type: recipientType,
+            specific_user: specificUser
+        };
+
+        try {
+            document.getElementById('sendText').style.display = 'none';
+            document.getElementById('loadingSpinner').style.display = 'inline';
+            document.getElementById('sendBtn').disabled = true;
+
+            const response = await fetch('/api/notifications/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('✅ Notification sent successfully!');
+                closeNotificationForm();
+                setTimeout(() => location.reload(), 800);
+            } else {
+                alert('❌ Failed to send: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error sending notification:', error);
+            alert('❌ Network error occurred.');
+        } finally {
+            document.getElementById('sendText').style.display = 'inline';
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('sendBtn').disabled = false;
+        }
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('notificationFormModal');
+        if (event.target == modal) closeNotificationForm();
+    }
+
+    function markAsRead(btn, id) {
+        const card = btn.closest('.notification-card');
+        if (card) {
+            card.classList.remove('unread');
+            card.classList.add('read');
+            btn.remove();
+            
+            // In a real app, call API here
+            console.log(`Marked notification ${id} as read`);
+        }
+    }
+    
+    function deleteNotification(btn, id) {
+        if(confirm('Are you sure you want to delete this notification?')) {
+            const card = btn.closest('.notification-card');
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(20px)';
+                setTimeout(() => {
+                    card.remove();
+                    updateCount();
+                }, 300);
+            }
+        }
+    }
+    
+    function markAllAsRead() {
+        if(confirm('Mark all notifications as read?')) {
+            document.querySelectorAll('.notification-card.unread').forEach(card => {
+                card.classList.remove('unread');
+                card.classList.add('read');
+                const btn = card.querySelector('.mark-read-btn');
+                if (btn) btn.remove();
+            });
+        }
+    }
+    
+    function updateCount() {
+        const count = document.querySelectorAll('.notification-card').length;
+        document.getElementById('notif-count').textContent = count;
+        if (count === 0) {
+            document.getElementById('notifications-container').innerHTML = `
+                <div class="empty-state">
+                    <i class="far fa-bell-slash"></i>
+                    <h3>No notifications</h3>
+                    <p>You're all caught up!</p>
+                </div>`;
+        }
+    }
+
+    function filterNotifications(btn, type) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const cards = document.querySelectorAll('.notification-card');
+        cards.forEach(card => {
+            const cardType = card.getAttribute('data-type');
+            if (type === 'all') {
+                card.style.display = 'flex';
+            } else if (type === 'unread') {
+                card.style.display = card.classList.contains('unread') ? 'flex' : 'none';
+            } else {
+                card.style.display = cardType === type ? 'flex' : 'none';
+            }
+        });
+    }
+</script>
+{% endblock %}

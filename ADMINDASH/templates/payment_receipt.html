@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Receipt - CrèoVibe</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --text-dark: #1a202c;
+            --text-gray: #718096;
+            --border-color: #e2e8f0;
+            --success-green: #2f855a;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f0f2f5;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }
+
+        .receipt-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .receipt-card {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .brand-header {
+            text-align: left;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-name {
+            font-size: 28px;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+
+        .receipt-label {
+            color: var(--text-gray);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .success-badge {
+            background: #e6fffa;
+            color: var(--success-green);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Info Grid */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .info-box {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            background: #fcfdfe;
+        }
+
+        .box-label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-gray);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .box-value {
+            display: block;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        /* Details List */
+        .details-list {
+            margin-top: 20px;
+            border-top: 2px solid #f7fafc;
+            padding-top: 10px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+            padding-top: 20px;
+        }
+
+        .detail-label {
+            color: var(--text-gray);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .amount-row .detail-value {
+            font-size: 22px;
+            color: #667eea;
+        }
+
+        /* Footer Actions */
+        .actions {
+            margin-top: 40px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .btn-download {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-back {
+            background: white;
+            border: 2px solid var(--border-color);
+            color: var(--text-gray);
+        }
+
+        .btn-back:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .receipt-container { padding: 0; }
+            .receipt-card { 
+                box-shadow: none !important; 
+                border: none !important; 
+                max-width: 100%;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt-container">
+        <div class="receipt-card">
+            <header class="brand-header">
+                <div class="brand-info">
+                    <div class="brand-name">CrèoVibe</div>
+                    <div class="receipt-label">Payment Receipt</div>
+                </div>
+                <div class="success-badge">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Payment Successful</span>
+                </div>
+            </header>
+
+            <div class="info-grid">
+                <div class="info-box">
+                    <span class="box-label">Receipt Number</span>
+                    <span class="box-value">RCPT-{{ payment.Payment_ID }}-{{ payment.Booking_ID }}</span>
+                </div>
+                <div class="info-box">
+                    <span class="box-label">Booking ID</span>
+                    <span class="box-value">#{{ payment.Booking_ID }}</span>
+                </div>
+                <div class="info-box">
+                    <span class="box-label">Payment ID</span>
+                    <span class="box-value">#{{ payment.Payment_ID }}</span>
+                </div>
+                <div class="info-box">
+                    <span class="box-label">Created At</span>
+                    <span class="box-value">{{ payment.Created_At if payment.Created_At else '-' }}</span>
+                </div>
+            </div>
+
+            <div class="details-list">
+                <div class="detail-row">
+                    <span class="detail-label">Client Name</span>
+                    <span class="detail-value">{{ payment.client_name }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Artist Name</span>
+                    <span class="detail-value">{{ payment.artist_name }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Payment Method</span>
+                    <span class="detail-value">{{ payment.payment_method if payment.payment_method else 'Standard' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Transaction ID</span>
+                    <span class="detail-value" style="font-family: monospace;">{{ payment.transaction_id if payment.transaction_id else 'N/A' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Payment Status</span>
+                    <span class="detail-value" style="color: var(--success-green); font-weight: 800;">Success</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Payment Date</span>
+                    <span class="detail-value">{{ payment.Paid_at if payment.Paid_at else '-' }}</span>
+                </div>
+                <div class="detail-row amount-row">
+                    <span class="detail-label" style="font-weight: 700; color: var(--text-dark); font-size: 18px;">Amount Paid</span>
+                    <span class="detail-value">₹{{ "{:,.2f}".format(payment.Amount|float) }}</span>
+                </div>
+            </div>
+
+            <div class="actions no-print">
+                <a href="/admin/payments" class="btn btn-back">
+                    <i class="fas fa-arrow-left"></i> Back to Payments
+                </a>
+                <button onclick="window.print()" class="btn btn-download">
+                    <i class="fas fa-download"></i> Download as PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
